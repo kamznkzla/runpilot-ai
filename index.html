@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>RunPilot AI - 智能跑步训练计划</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+:root {
+  --bg-primary: #0F0F1A;
+  --bg-secondary: #1A1A2E;
+  --bg-card: #1E1E35;
+  --bg-card-hover: #252540;
+  --bg-input: #2A2A40;
+  --accent: #FF6B35;
+  --accent-light: #FF8C5A;
+  --accent-dark: #E55A2B;
+  --accent-glow: rgba(255,107,53,0.3);
+  --text-primary: #FFFFFF;
+  --text-secondary: #B0B3C0;
+  --text-muted: #6B6E7D;
+  --success: #4CAF50;
+  --warning: #FFB74D;
+  --error: #EF5350;
+  --info: #42A5F5;
+  --font-mono: 'Courier New', monospace;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-round: 50px;
+  --spacing: 14px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow: hidden;
+  height: 100vh;
+}
+#app { height: 100vh; display: flex; flex-direction: column; }
+
+/* Scrollbar */
+::-webkit-scrollbar { display: none; }
+
+/* Card */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: var(--spacing);
+  margin-bottom: var(--spacing);
+}
+.card.accent { border-left: 3px solid var(--accent); }
+
+/* Buttons */
+.btn {
+  display: block; width: 100%; padding: 14px; border: none; border-radius: var(--radius-round);
+  font-size: 17px; font-weight: 600; text-align: center; cursor: pointer; transition: all 0.2s;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; }
+.btn-outline { background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); }
+.btn-small { padding: 8px 20px; font-size: 13px; width: auto; display: inline-block; }
+.btn:disabled { opacity: 0.4; }
+
+/* Input */
+.input {
+  width: 100%; background: var(--bg-input); border: 1px solid transparent;
+  border-radius: var(--radius-sm); padding: 14px; font-size: 17px; color: var(--text-primary);
+  outline: none;
+}
+.input:focus { border-color: var(--accent); }
+
+/* Navbar */
+.navbar {
+  background: var(--bg-secondary); display: flex; align-items: center;
+  justify-content: center; padding: 12px 14px; position: relative; flex-shrink: 0;
+}
+.navbar .back { position: absolute; left: 14px; font-size: 20px; color: var(--text-primary); cursor: pointer; }
+.navbar .title { font-size: 17px; font-weight: 600; }
+.navbar .right { position: absolute; right: 14px; font-size: 14px; color: var(--accent-light); cursor: pointer; }
+
+/* TabBar */
+.tabbar {
+  background: var(--bg-secondary); display: flex; justify-content: space-around;
+  padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;
+}
+.tabbar .tab {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-size: 11px; color: var(--text-muted); cursor: pointer; padding: 6px 12px;
+}
+.tabbar .tab.active { color: var(--accent); }
+.tabbar .tab .icon { font-size: 22px; }
+
+/* Content area */
+.page-content {
+  flex: 1; overflow-y: auto; padding: var(--spacing);
+}
+
+/* Utils */
+.text-muted { color: var(--text-muted); font-size: 13px; }
+.text-accent { color: var(--accent); }
+.badge {
+  display: inline-block; padding: 3px 12px; border-radius: var(--radius-round);
+  font-size: 11px; font-weight: 600;
+}
+.mt { margin-top: 14px; }
+.mb { margin-bottom: 14px; }
+.flex { display: flex; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.text-center { text-align: center; }
+.mono { font-family: var(--font-mono); }
+
+/* Gender toggle */
+.gender-toggle { display: flex; gap: 14px; }
+.gender-btn {
+  flex: 1; background: var(--bg-input); border-radius: var(--radius-sm); padding: 14px;
+  text-align: center; cursor: pointer; border: 2px solid transparent;
+}
+.gender-btn.active { border-color: var(--accent); background: rgba(255,107,53,0.1); }
+
+/* Option cards */
+.option-card {
+  background: var(--bg-input); border-radius: var(--radius-sm); padding: 14px;
+  cursor: pointer; border: 2px solid transparent; text-align: center;
+}
+.option-card.active { border-color: var(--accent); background: rgba(255,107,53,0.1); }
+.option-card .label { font-size: 17px; font-weight: 500; }
+.option-card .desc { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* Step dots */
+.steps { display: flex; justify-content: center; gap: 8px; padding: 18px 0; }
+.steps .dot { width: 54px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); }
+.steps .dot.active { background: var(--accent); }
+
+/* Countdown */
+.countdown-card {
+  background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+  border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 14px;
+}
+.countdown-card .label { font-size: 13px; color: rgba(255,255,255,0.8); }
+.countdown-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 14px 0; }
+.countdown-row .num { font-family: var(--font-mono); font-size: 48px; font-weight: 700; }
+.countdown-row .unit { font-size: 13px; color: rgba(255,255,255,0.7); }
+.countdown-row .sep { color: rgba(255,255,255,0.3); font-size: 20px; margin: 0 6px; }
+.countdown-motivation { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 8px; }
+
+/* Workout icon */
+.workout-icon {
+  width: 52px; height: 52px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;
+}
+
+/* Today workout */
+.today-workout { display: flex; gap: 14px; align-items: center; }
+.today-type { font-size: 19px; font-weight: 600; }
+.today-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.today-stats { display: flex; gap: 14px; margin-top: 8px; }
+.today-stat { font-size: 15px; color: var(--accent-light); font-family: var(--font-mono); }
+
+/* Rest day card */
+.rest-day { text-align: center; padding: 20px 0; }
+.rest-day .emoji { font-size: 40px; }
+.rest-day .title { font-size: 17px; margin-top: 8px; }
+
+/* Weekly progress */
+.weekly-progress { display: flex; align-items: center; gap: 20px; }
+.ring-wrap {
+  width: 140px; height:140px; position: relative; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.ring-wrap canvas { position: absolute; top:0; left:0; }
+.ring-content { text-align: center; z-index: 1; }
+.ring-value { font-family: var(--font-mono); font-size: 32px; font-weight: 700; }
+.ring-label { font-size: 12px; color: var(--text-muted); }
+
+/* Summary grid */
+.summary-item { text-align: center; }
+.summary-val { font-family: var(--font-mono); font-size: 24px; font-weight: 700; }
+.summary-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+/* Quick links */
+.quick-link { text-align: center; cursor: pointer; }
+.quick-link .ico { font-size: 28px; }
+.quick-link .lbl { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+/* Phase timeline */
+.phase-bar { display: flex; border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+.phase-seg { padding: 8px 4px; text-align: center; font-size: 11px; color: #fff; transition: opacity 0.3s; }
+
+/* Training day card */
+.training-day {
+  background: var(--bg-card); border-radius: var(--radius-sm); padding: 12px;
+  display: flex; align-items: center; gap: 12px; margin-bottom: 8px; cursor: pointer;
+}
+.training-day.rest { opacity: 0.4; }
+.training-day .day-label { font-size: 12px; color: var(--text-muted); min-width: 40px; }
+.training-day .day-type { font-size: 16px; font-weight: 600; }
+.training-day .day-brief { font-size: 12px; color: var(--text-muted); }
+
+/* Chat */
+.chat-msg { display: flex; gap: 8px; margin-bottom: 14px; }
+.chat-msg.user { flex-direction: row-reverse; }
+.chat-avatar {
+  width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.chat-avatar.ai { background: var(--accent); }
+.chat-avatar.user { background: var(--info); }
+.chat-bubble {
+  max-width: 75%; background: var(--bg-card); border-radius: 12px; padding: 10px 14px;
+}
+.chat-msg.user .chat-bubble { background: var(--accent); }
+.chat-bubble p { font-size: 15px; line-height: 1.6; }
+
+.chat-input-bar {
+  background: var(--bg-secondary); display: flex; gap: 8px; padding: 10px 14px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.chat-input-bar input {
+  flex: 1; background: var(--bg-input); border: none; border-radius: var(--radius-round);
+  padding: 10px 16px; font-size: 15px; color: var(--text-primary); outline: none;
+}
+.chat-input-bar .send-btn {
+  background: var(--accent); color: #fff; border: none; border-radius: var(--radius-round);
+  padding: 10px 24px; font-weight: 600; cursor: pointer;
+}
+
+/* Profile */
+.profile-card {
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-card-hover));
+  border-radius: var(--radius); padding: 24px; text-align: center; margin-bottom: 14px;
+}
+.avatar-circle {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;
+  font-size: 34px; font-weight: 700; color: #fff;
+}
+.profile-stats { display: flex; justify-content: center; gap: 24px; margin-top: 14px; }
+.menu-list { background: var(--bg-card); border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; }
+.menu-item {
+  display: flex; align-items: center; padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.04);
+  cursor: pointer;
+}
+.menu-item:last-child { border-bottom: none; }
+.menu-item:active { background: var(--bg-card-hover); }
+.menu-item .ico { font-size: 20px; margin-right: 12px; }
+.menu-item .lbl { flex: 1; }
+.menu-item .arrow { color: var(--text-muted); }
+
+/* Switch */
+.switch-wrap { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: var(--bg-card); margin-bottom: 2px; }
+.switch-wrap:first-of-type { border-radius: var(--radius) var(--radius) 0 0; }
+.switch-wrap:last-of-type { border-radius: 0 0 var(--radius) var(--radius); margin-bottom: 14px; }
+.switch-wrap:only-of-type { border-radius: var(--radius); }
+.toggle { width: 48px; height: 28px; border-radius: 14px; background: rgba(255,255,255,0.15); position: relative; cursor: pointer; transition: background 0.2s; }
+.toggle.on { background: var(--accent); }
+.toggle::after {
+  content: ''; width: 22px; height: 22px; border-radius: 50%; background: #fff;
+  position: absolute; top: 3px; left: 3px; transition: left 0.2s;
+}
+.toggle.on::after { left: 23px; }
+
+/* RPE */
+.rpe-row { display: flex; justify-content: space-between; }
+.rpe-dot {
+  width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 11px; cursor: pointer; transition: all 0.15s;
+}
+.rpe-dot.active { transform: scale(1.2); }
+
+/* Achievement grid */
+.ach-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.ach-item {
+  width: 100px; text-align: center; padding: 12px 4px; border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+.ach-item.locked { opacity: 0.35; }
+.ach-item .ach-icon { font-size: 30px; }
+.ach-item .ach-name { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+/* PB list */
+.pb-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.pb-item:last-child { border-bottom: none; }
+
+/* Log card */
+.log-card { padding: 14px; background: var(--bg-card); border-radius: var(--radius-sm); margin-bottom: 10px; }
+.log-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.log-stats { display: flex; gap: 18px; }
+
+/* Preset chips */
+.preset-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.chip {
+  background: rgba(255,255,255,0.06); border-radius: var(--radius-round);
+  padding: 8px 16px; font-size: 13px; cursor: pointer; border: 1px solid transparent;
+}
+.chip.active { background: rgba(255,107,53,0.2); border-color: rgba(255,107,53,0.3); color: var(--accent-light); }
+
+/* Loading skeleton */
+.skeleton { background: var(--bg-card); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+.skel-line { height: 14px; border-radius: 3px; background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.08), rgba(255,255,255,0.04)); background-size: 200% 100%; animation: shimmer 1.5s infinite; margin-bottom: 10px; }
+.skel-line:last-child { margin-bottom: 0; }
+.skel-short { width: 35%; }
+.skel-med { width: 65%; }
+.skel-long { width: 90%; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* Confetti */
+.confetti-overlay {
+  position: fixed; top:0; left:0; width:100vw; height:100vh; z-index:999; pointer-events:none;
+}
+.confetti-piece {
+  position: absolute; top: -20px; animation: confetti-fall linear forwards;
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+.confetti-text { position: absolute; top:40%; left:50%; transform: translate(-50%,-50%); text-align: center; animation: pop-in 0.5s ease-out; }
+.confetti-text .ce { font-size: 60px; }
+.confetti-text .ct { font-size: 24px; font-weight: 700; display: block; margin-top: 8px; }
+@keyframes pop-in { 0%{transform:translate(-50%,-50%) scale(0.5);opacity:0} 100%{transform:translate(-50%,-50%) scale(1);opacity:1} }
+
+/* Empty state */
+.empty { text-align: center; padding: 40px; }
+.empty .eicon { font-size: 50px; }
+.empty .etitle { font-size: 17px; color: var(--text-secondary); margin-top: 8px; }
+
+/* No plan */
+.no-plan { text-align: center; padding: 30px 0; }
+.no-plan .eicon { font-size: 60px; }
+.no-plan .etitle { font-size: 20px; font-weight: 700; margin-top: 10px; }
+.no-plan .edesc { font-size: 13px; color: var(--text-muted); margin: 8px 0 20px; }
+
+/* Chart area */
+.chart-area { padding: 10px 0; }
+.chart-area canvas { width: 100%; }
+
+/* Gauge */
+.gauge-bar { height: 12px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; margin: 10px 0; }
+.gauge-fill { height: 100%; border-radius: 6px; transition: width 0.5s; }
+.gauge-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+
+/* Platform list */
+.platform-item {
+  display: flex; align-items: center; justify-content: space-between; padding: 14px;
+  background: var(--bg-card); border-radius: var(--radius-sm); margin-bottom: 8px; border: 1px solid transparent;
+}
+.platform-item.connected { border-color: rgba(255,107,53,0.3); }
+
+/* Settings groups */
+.settings-title { font-size: 13px; color: var(--text-muted); padding: 0 6px 8px 6px; }
+
+/* Plan config */
+.config-chips { display: flex; gap: 8px; margin-bottom: 18px; }
+.config-chip { flex: 1; background: var(--bg-card); border-radius: var(--radius-sm); padding: 14px; text-align: center; border: 2px solid transparent; cursor: pointer; }
+.config-chip.active { border-color: var(--accent); background: rgba(255,107,53,0.1); }
+.config-chip .cv { font-size: 17px; font-weight: 600; }
+.config-chip .cd { font-size: 11px; color: var(--text-muted); }
+
+/* Calendar */
+.cal-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+.cal-month { font-size: 19px; font-weight: 700; }
+.cal-nav { font-size: 20px; color: var(--accent); cursor: pointer; padding: 8px; }
+.weekdays { display: flex; text-align: center; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.weekdays span { flex: 1; padding: 6px 0; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-cell {
+  aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 14px; border-radius: 6px; cursor: pointer; position: relative;
+}
+.cal-cell.other { color: rgba(255,255,255,0.2); }
+.cal-cell.today { background: rgba(255,107,53,0.2); color: var(--accent); font-weight: 700; }
+.cal-cell.has-workout::after {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; position: absolute; bottom: 6px;
+}
+
+/* Workout popup */
+.popup-overlay {
+  position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6);
+  z-index: 200; display: flex; align-items: flex-end;
+}
+.popup-sheet {
+  background: var(--bg-card); border-radius: var(--radius) var(--radius) 0 0;
+  padding: 20px; width: 100%;
+}
+
+/* Session panel */
+.session-overlay {
+  position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5);
+  z-index: 150; display: flex; justify-content: flex-end;
+}
+.session-panel {
+  width: 300px; background: var(--bg-secondary); height: 100%; padding: 18px;
+}
+.session-item {
+  padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer;
+  border-radius: 6px;
+}
+.session-item.active { background: rgba(255,107,53,0.1); }
+
+/* Quick questions */
+.quick-q { display: inline-block; background: rgba(255,255,255,0.06); border-radius: var(--radius-round); padding: 8px 16px; margin: 4px; cursor: pointer; font-size: 13px; color: var(--text-secondary); }
+.quick-q:active { background: rgba(255,107,53,0.15); }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Onboarding Step 1: Profile -->
+  <div v-if="page === 'onboarding1'" class="page-content">
+    <div class="steps"><div v-for="i in 5" class="dot" :class="{active:i<=1}"></div></div>
+    <div style="margin-bottom:16px"><label class="text-muted" style="display:block;margin-bottom:6px">年龄</label><input class="input" type="number" v-model="form.age" placeholder="输入你的年龄"></div>
+    <div style="margin-bottom:16px"><label class="text-muted" style="display:block;margin-bottom:6px">性别</label>
+      <div class="gender-toggle">
+        <div class="gender-btn" :class="{active:form.gender==='male'}" @click="form.gender='male'">👨 男</div>
+        <div class="gender-btn" :class="{active:form.gender==='female'}" @click="form.gender='female'">👩 女</div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px"><label class="text-muted" style="display:block;margin-bottom:6px">身高 (cm)</label><input class="input" type="number" v-model="form.height" placeholder="如 175"></div>
+    <div style="margin-bottom:16px"><label class="text-muted" style="display:block;margin-bottom:6px">体重 (kg)</label><input class="input" type="number" v-model="form.weight" placeholder="如 70"></div>
+    <button class="btn btn-primary" :disabled="!form.age||!form.height||!form.weight" @click="page='onboarding2'">下一步</button>
+  </div>
+
+  <!-- Onboarding Step 2: Experience -->
+  <div v-if="page === 'onboarding2'" class="page-content">
+    <div class="steps"><div v-for="i in 5" class="dot" :class="{active:i<=2}"></div></div>
+    <div style="margin-bottom:16px"><label class="text-muted" style="display:block;margin-bottom:8px">每周可训练天数</label>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div v-for="d in [{v:'2-3',l:'2-3 天',c:'时间有限'},{v:'4-5',l:'4-5 天',c:'适中强度'},{v:'6-7',l:'6-7 天',c:'全力投入'}]" class="option-card" :class="{active:form.weeklyDays===d.v}" @click="form.weeklyDays=d.v">
+          <div class="label">{{ d.l }}</div><div class="desc">{{ d.c }}</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px"><label class="text-muted" style="display:block;margin-bottom:8px">跑步经验水平</label>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div v-for="e in [{v:'beginner',l:'新手',c:'开始跑步不足6个月'},{v:'intermediate',l:'进阶',c:'有规律跑步，完成过10K'},{v:'advanced',l:'高阶',c:'跑龄2年+，完成过半马/全马'}]" class="option-card" :class="{active:form.experience===e.v}" @click="form.experience=e.v">
+          <div class="label">{{ e.l }}</div><div class="desc">{{ e.c }}</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" @click="page='onboarding1'">上一步</button>
+      <button class="btn btn-primary" style="flex:2" :disabled="!form.weeklyDays||!form.experience" @click="page='onboarding3'">下一步</button>
+    </div>
+  </div>
+
+  <!-- Onboarding Step 3: Records -->
+  <div v-if="page === 'onboarding3'" class="page-content">
+    <div class="steps"><div v-for="i in 5" class="dot" :class="{active:i<=3}"></div></div>
+    <p class="text-muted text-center mb">输入你最近的比赛成绩（选填）</p>
+    <div v-for="d in distances" style="margin-bottom:12px">
+      <label class="text-muted" style="display:block;margin-bottom:4px">{{ d.label }}</label>
+      <input class="input" :placeholder="'如 '+d.placeholder" v-model="form.times[d.key]" @input="calcPace(d.key)">
+      <span v-if="form.paces[d.key]" style="font-size:11px;color:var(--accent-light)">≈ {{ form.paces[d.key] }} 配速</span>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" @click="page='onboarding2'">上一步</button>
+      <button class="btn btn-primary" style="flex:2" @click="page='onboarding4'">下一步</button>
+    </div>
+  </div>
+
+  <!-- Onboarding Step 4: Goal -->
+  <div v-if="page === 'onboarding4'" class="page-content">
+    <div class="steps"><div v-for="i in 5" class="dot" :class="{active:i<=4}"></div></div>
+    <div style="margin-bottom:16px"><label class="text-muted" style="display:block;margin-bottom:8px">目标距离</label>
+      <div class="grid-2">
+        <div v-for="g in goalDistances" class="option-card" :class="{active:form.goalDistance===g.v}" @click="form.goalDistance=g.v;form.goalTime='';form.goalTimeSec=0">
+          <div class="label">{{ g.l }}</div><div class="desc">{{ g.c }}</div>
+        </div>
+      </div>
+    </div>
+    <div v-if="form.goalDistance" style="margin-bottom:16px">
+      <label class="text-muted" style="display:block;margin-bottom:8px">目标完赛时间</label>
+      <div class="preset-chips">
+        <span v-for="p in goalPresets" class="chip" :class="{active:form.goalTime===p.label}" @click="form.goalTime=p.label;form.goalTimeSec=p.sec">{{ p.label }}</span>
+      </div>
+      <input class="input mt" placeholder="或手动输入 (如 1:45:00)" v-model="form.goalTimeCustom" @input="parseCustomTime()" style="margin-top:10px">
+    </div>
+    <div style="margin-bottom:16px">
+      <label class="text-muted" style="display:block;margin-bottom:8px">比赛日期</label>
+      <input class="input" type="date" v-model="form.goalRaceDate">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" @click="page='onboarding3'">上一步</button>
+      <button class="btn btn-primary" style="flex:2" :disabled="!form.goalDistance" @click="page='onboarding5'">下一步</button>
+    </div>
+  </div>
+
+  <!-- Onboarding Step 5: Devices -->
+  <div v-if="page === 'onboarding5'" class="page-content">
+    <div class="steps"><div v-for="i in 5" class="dot" :class="{active:i<=5}"></div></div>
+    <p class="text-muted text-center mb">授权同步运动数据，让训练更精准</p>
+    <div v-for="p in platforms" class="platform-item" :class="{connected:form.devices.includes(p.v)}">
+      <div style="display:flex;align-items:center;gap:12px"><span style="font-size:24px">{{ p.e }}</span><div><div style="font-weight:500">{{ p.l }}</div><div style="font-size:11px;color:var(--text-muted)">{{ p.c }}</div></div></div>
+      <div class="toggle" :class="{on:form.devices.includes(p.v)}" @click="toggleDevice(p.v)"></div>
+    </div>
+    <p class="text-center text-muted" style="margin:20px 0;font-size:12px">可稍后在"设置"中配置</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" @click="page='onboarding4'">上一步</button>
+      <button class="btn btn-primary" style="flex:2" @click="completeOnboarding">完成设置 🎉</button>
+    </div>
+  </div>
+
+  <!-- Main App (after onboarding) -->
+  <template v-if="page.startsWith('tab_') || page.startsWith('sub_')">
+    <!-- Navbar -->
+    <div class="navbar" v-if="currentNavTitle">
+      <span v-if="page.startsWith('sub_')" class="back" @click="goBack">&larr;</span>
+      <span class="title">{{ currentNavTitle }}</span>
+      <span v-if="page==='tab_coach'" class="right" @click="showSessions=!showSessions">{{ showSessions?'✕':'☰' }}</span>
+    </div>
+
+    <!-- Session Panel -->
+    <div v-if="showSessions" class="session-overlay" @click="showSessions=false">
+      <div class="session-panel" @click.stop>
+        <div class="flex-between mb"><b>历史对话</b><span style="color:var(--accent);cursor:pointer;font-size:13px" @click="newChat();showSessions=false">+ 新对话</span></div>
+        <div v-for="s in chatSessions" class="session-item" :class="{active:s.id===currentChatId}" @click="loadChat(s.id);showSessions=false">
+          <div style="font-size:14px;font-weight:500">{{ s.title }}</div>
+          <div style="font-size:11px;color:var(--text-muted)">{{ s.preview }}</div>
+        </div>
+        <div v-if="chatSessions.length===0" class="empty"><div style="font-size:30px">💬</div><div style="font-size:13px;color:var(--text-muted)">暂无对话</div></div>
+      </div>
+    </div>
+
+    <!-- Page Content -->
+    <div class="page-content" style="overflow-y:auto;flex:1" v-if="page==='tab_dashboard'">
+      <!-- Countdown -->
+      <div v-if="form.goalRaceDate" class="countdown-card" @click="page='tab_plan'">
+        <div class="label">距离比赛日还有</div>
+        <div class="countdown-row">
+          <div><div class="num">{{ raceDays }}</div><div class="unit">天</div></div>
+          <span class="sep">:</span>
+          <div><div class="num">{{ raceHours }}</div><div class="unit">时</div></div>
+          <span class="sep">:</span>
+          <div><div class="num">{{ raceMins }}</div><div class="unit">分</div></div>
+        </div>
+        <div v-if="form.goalDistance" style="font-size:15px;margin-top:8px">目标：{{ goalLabel(form.goalDistance) }} · {{ form.goalTime || '完赛即可' }}</div>
+        <div class="countdown-motivation">{{ motivationText }}</div>
+      </div>
+
+      <!-- Today's Workout -->
+      <div class="text-muted mb" style="font-size:16px;font-weight:600;color:var(--text-primary)">今日训练</div>
+      <div class="card accent" v-if="todayWorkout" style="cursor:pointer" @click="page='sub_workout_detail'">
+        <div class="today-workout">
+          <div class="workout-icon" :style="{background:workoutColor(todayWorkout.type)}">{{ workoutEmoji(todayWorkout.type) }}</div>
+          <div>
+            <div class="today-type">{{ workoutLabel(todayWorkout.type) }}</div>
+            <div class="today-desc">{{ todayWorkout.description }}</div>
+            <div class="today-stats">
+              <span v-if="todayWorkout.distance_km" class="today-stat">{{ todayWorkout.distance_km }} km</span>
+              <span v-if="todayWorkout.target_pace" class="today-stat">{{ todayWorkout.target_pace }}/km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" v-else-if="hasActivePlan">
+        <div class="rest-day"><div class="emoji">🌙</div><div class="title">今天是休息日</div><div style="font-size:13px;color:var(--text-muted);margin-top:4px">好好恢复，为下次训练做准备</div></div>
+      </div>
+      <div class="card" v-else>
+        <div class="no-plan" @click="page='tab_plan'">
+          <div class="eicon">🎯</div><div class="etitle">还没有训练计划</div><div class="edesc">点击开始生成你的专属训练计划</div>
+          <button class="btn btn-primary btn-small">生成计划</button>
+        </div>
+      </div>
+
+      <!-- Weekly Progress -->
+      <div v-if="hasActivePlan" style="margin-top:14px">
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px">本周进度</div>
+        <div class="card">
+          <div class="weekly-progress">
+            <div class="ring-wrap"><canvas id="ringCanvas" width="280" height="280"></canvas><div class="ring-content"><div class="ring-value">{{ weeklyPct }}%</div><div class="ring-label">{{ weeklyDone }}/{{ weeklyTotal }} 次完成</div><div style="font-size:11px;color:var(--text-muted)">第 {{ currentWeek }}/{{ activePlan.total_weeks }} 周</div></div></div>
+            <div style="flex:1"><div style="margin-bottom:10px"><div class="mono" style="font-size:24px;font-weight:700">{{ weekTotalKm }}</div><div class="text-muted" style="font-size:12px">本周计划 (km)</div></div><div><div style="font-size:24px;font-weight:700">{{ phaseLabel(activePlan.current_phase) }}</div><div class="text-muted" style="font-size:12px">当前阶段</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div style="font-size:16px;font-weight:600;margin-bottom:8px">训练摘要</div>
+      <div class="card"><div class="grid-2"><div v-for="s in summaryItems" class="summary-item"><div class="summary-val">{{ s.val }}</div><div class="summary-lbl">{{ s.lbl }}</div></div></div></div>
+
+      <!-- AI Daily Tip -->
+      <div class="card accent"><div style="color:var(--accent-light);font-size:13px;margin-bottom:4px">💡 AI 教练说</div><div style="font-size:15px;color:var(--text-secondary);line-height:1.6">"{{ dailyTip }}"</div></div>
+
+      <!-- Quick Links -->
+      <div class="card"><div class="grid-4"><div v-for="q in quickLinks" class="quick-link" @click="page=q.page"><div class="ico">{{ q.ico }}</div><div class="lbl">{{ q.lbl }}</div></div></div></div>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- Plan Page -->
+    <div class="page-content" v-if="page==='tab_plan'">
+      <div v-if="!hasActivePlan && !generatingPlan">
+        <div class="no-plan"><div class="eicon">🏃‍♂️</div><div class="etitle">还没有训练计划</div><div class="edesc">让 AI 为你生成专属的科学训练计划</div></div>
+        <div style="margin-bottom:18px"><div class="text-muted" style="margin-bottom:8px">计划时长</div><div class="config-chips"><div v-for="d in [4,8,12]" class="config-chip" :class="{active:planDuration===d}" @click="planDuration=d"><div class="cv">{{ d }} 周</div><div class="cd">{{ d===4?'短期突击':d===8?'标准计划':'完整周期(推荐)' }}</div></div></div></div>
+        <button class="btn btn-primary" :disabled="!form.goalDistance" @click="generatePlan">{{ generatingPlan?'AI 正在生成...':'生成训练计划' }}</button>
+        <p v-if="generatingPlan" class="text-muted text-center" style="margin-top:10px;font-size:12px">AI 正在根据你的数据生成个性化计划，请稍候...</p>
+      </div>
+
+      <div v-else-if="hasActivePlan">
+        <div style="background:linear-gradient(135deg,var(--bg-card),var(--bg-card-hover));border-radius:var(--radius);padding:18px;margin-bottom:14px">
+          <div class="flex-between"><span style="font-size:20px;font-weight:700">{{ activePlan.plan_name }}</span><span class="badge" :style="{background:phaseColor(activePlan.current_phase)}">{{ phaseLabel(activePlan.current_phase) }}</span></div>
+          <div style="display:flex;gap:18px;font-size:13px;color:var(--text-muted);margin-top:8px"><span>第 {{ currentWeek }}/{{ activePlan.total_weeks }} 周</span><span>{{ weeklyDone }}/{{ weeklyTotal }} 次完成</span></div>
+        </div>
+
+        <!-- Phase Timeline -->
+        <div class="phase-bar"><div v-for="p in activePlan.phases" class="phase-seg" :style="{flex:p.end_week-p.start_week+1,background:phaseColor(p.name),opacity:(currentWeek>=p.start_week&&currentWeek<=p.end_week)?1:0.3}">{{ phaseLabel(p.name) }}</div></div>
+
+        <!-- This week -->
+        <div class="flex-between" style="margin-bottom:8px"><span style="font-size:16px;font-weight:600">本周训练</span><span style="font-size:13px;color:var(--accent-light);cursor:pointer" @click="page='sub_calendar'">日历视图 →</span></div>
+        <div v-for="day in activePlan.weeks[currentWeek-1]?.days" :key="day.day" class="training-day" :class="{rest:day.type==='rest'}" @click="day.type!=='rest'&&(selectedDay=day,page='sub_workout_detail')">
+          <span class="day-label">{{ dayLabel(day.day) }}</span>
+          <div class="workout-icon" :style="{background:workoutColor(day.type),width:'36px',height:'36px',fontSize:'16px'}">{{ workoutEmoji(day.type) }}</div>
+          <div style="flex:1"><div class="day-type">{{ workoutLabel(day.type) }}</div><div class="day-brief">{{ day.description }}</div></div>
+        </div>
+      </div>
+
+      <div v-if="generatingPlan" style="margin-top:20px"><div class="skeleton" v-for="i in 3"><div class="skel-line skel-short"></div><div class="skel-line skel-long"></div><div class="skel-line skel-med"></div></div></div>
+
+      <div v-if="hasActivePlan" style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn btn-outline" style="flex:1" @click="adjustPlan">🔧 调整计划</button>
+        <button class="btn btn-outline" style="flex:1" @click="page='sub_calendar'">📅 日历视图</button></div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="page-content" v-if="page==='sub_calendar'">
+      <div class="cal-header"><span class="cal-nav" @click="calMonth--;if(calMonth<1){calMonth=12;calYear--}">&lt;</span><span class="cal-month">{{ calYear }}年{{ calMonth }}月</span><span class="cal-nav" @click="calMonth++;if(calMonth>12){calMonth=1;calYear++}">&gt;</span></div>
+      <div class="weekdays"><span v-for="d in ['一','二','三','四','五','六','日']">{{ d }}</span></div>
+      <div class="cal-grid"><div v-for="c in calGrid" class="cal-cell" :class="{other:!c.isCurrent, today:c.isToday, 'has-workout':c.hasWorkout}" @click="c.hasWorkout&&(calSelected=c)"><span>{{ c.day }}</span></div></div>
+      <div v-if="calSelected" class="popup-overlay" @click="calSelected=null"><div class="popup-sheet" @click.stop><div style="font-size:13px;color:var(--text-muted);margin-bottom:8px">{{ calSelected.date }}</div><div style="display:flex;gap:12px;align-items:center"><div class="workout-icon" :style="{background:workoutColor(calSelected.wo.type)}">{{ workoutEmoji(calSelected.wo.type) }}</div><div><div style="font-size:19px;font-weight:600">{{ workoutLabel(calSelected.wo.type) }}</div><div style="font-size:13px;color:var(--text-muted)">{{ calSelected.wo.description }}</div><div style="display:flex;gap:12px;margin-top:4px"><span v-if="calSelected.wo.distance_km" style="color:var(--accent-light)">{{ calSelected.wo.distance_km }} km</span><span v-if="calSelected.wo.target_pace" style="color:var(--accent-light)">{{ calSelected.wo.target_pace }}/km</span></div></div></div></div></div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:14px"><span v-for="l in calLegend" style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;display:inline-block" :style="{background:l.c}"></span>{{ l.l }}</span></div>
+    </div>
+
+    <!-- Workout Detail -->
+    <div class="page-content" v-if="page==='sub_workout_detail'">
+      <div v-if="selectedDay" style="padding:16px 0"><div style="display:flex;gap:12px;align-items:center"><div class="workout-icon" :style="{background:workoutColor(selectedDay.type),width:'60px',height:'60px',fontSize:'28px'}">{{ workoutEmoji(selectedDay.type) }}</div><div><div style="font-size:26px;font-weight:700">{{ workoutLabel(selectedDay.type) }}</div><div style="font-size:13px;color:var(--text-muted)">{{ todayDate }} {{ todayWeekday }}</div></div></div></div>
+      <div class="card"><div style="font-size:16px;font-weight:600;margin-bottom:10px">训练目标</div><div class="grid-2"><div v-if="selectedDay.distance_km" class="summary-item"><div class="summary-val">{{ selectedDay.distance_km }} km</div><div class="summary-lbl">距离</div></div><div v-if="selectedDay.target_pace" class="summary-item"><div style="font-family:var(--font-mono);font-size:32px;font-weight:700;color:var(--accent)">{{ selectedDay.target_pace }}</div><div class="summary-lbl">目标配速 /km</div></div><div v-if="selectedDay.duration_min" class="summary-item"><div class="summary-val">{{ selectedDay.duration_min }} min</div><div class="summary-lbl">时长</div></div><div v-if="selectedDay.rpe_target" class="summary-item"><div class="summary-val">RPE {{ selectedDay.rpe_target }}</div><div class="summary-lbl">感知强度</div></div></div></div>
+      <div v-if="selectedDay.coach_note" class="card accent"><div style="color:var(--accent-light);font-size:13px;margin-bottom:6px">💡 教练提示</div><div style="font-size:15px;color:var(--text-secondary)">{{ selectedDay.coach_note }}</div></div>
+      <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary" style="flex:2;background:var(--success)" @click="completeWorkout('done')">标记完成</button><button class="btn" style="flex:1;background:var(--warning);color:#1A1A2E;font-size:13px" @click="completeWorkout('partial')">部分完成</button><button class="btn btn-outline" style="flex:1;font-size:13px" @click="completeWorkout('skipped')">跳过</button></div>
+    </div>
+
+    <!-- Workout Feedback -->
+    <div class="page-content" v-if="page==='sub_feedback'">
+      <div class="text-center" style="padding:10px 0"><div style="font-size:40px">{{ fbStatus==='done'?'✅':fbStatus==='partial'?'⚠️':'⏭️' }}</div><div style="font-size:17px;margin-top:8px">你将此训练标记为"{{ fbStatus==='done'?'完成':fbStatus==='partial'?'部分完成':'跳过' }}"</div></div>
+      <div class="card" v-if="fbStatus!=='skipped'"><div style="font-size:16px;font-weight:600;margin-bottom:10px">实际数据</div><div style="margin-bottom:12px"><label class="text-muted" style="display:block;margin-bottom:4px">实际距离 (km)</label><input class="input" type="number" v-model="fbForm.distance" placeholder="如 8.5"></div><div style="margin-bottom:12px"><label class="text-muted" style="display:block;margin-bottom:4px">实际时长 (分钟)</label><input class="input" type="number" v-model="fbForm.duration" placeholder="如 48"></div><div v-if="fbForm.distance&&fbForm.duration" style="text-align:center;color:var(--accent-light);font-size:13px">估算配速：{{ formatPace(Math.round(fbForm.duration*60/fbForm.distance)) }}</div></div>
+      <div class="card"><div style="font-size:16px;font-weight:600;margin-bottom:10px">体感评估 (RPE)</div><div class="rpe-row"><div v-for="i in 10" class="rpe-dot" :class="{active:i<=fbForm.rpe}" :style="{background:i<=fbForm.rpe?rpeColor(i):'rgba(255,255,255,0.08)'}" @click="fbForm.rpe=i">{{ i }}</div></div></div>
+      <button class="btn btn-primary" @click="submitFeedback">提交反馈</button>
+    </div>
+
+    <!-- AI Coach Page -->
+    <div class="page-content" style="padding:0;display:flex;flex-direction:column" v-if="page==='tab_coach'">
+      <div style="flex:1;overflow-y:auto;padding:14px">
+        <div v-if="chatMessages.length===0" style="text-align:center;padding:40px 20px">
+          <div style="font-size:50px">🏃</div><div style="font-size:19px;font-weight:600;margin-top:8px">RunPilot AI 教练</div><div style="font-size:13px;color:var(--text-muted);margin:8px 0 16px">可以问我关于训练、跑步技巧、营养建议等问题</div>
+          <div><span v-for="q in quickQuestions" class="quick-q" @click="sendChat(q)">{{ q }}</span></div></div>
+        <div v-for="(m,i) in chatMessages" class="chat-msg" :class="m.role"><div class="chat-avatar" :class="m.role">{{ m.role==='assistant'?'AI':'我' }}</div><div class="chat-bubble" v-html="m.content"></div></div>
+        <div v-if="chatLoading" class="chat-msg"><div class="chat-avatar ai">AI</div><div class="chat-bubble" style="padding:14px 20px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 0.6s infinite;margin:0 3px"></span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 0.6s infinite 0.15s;margin:0 3px"></span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 0.6s infinite 0.3s;margin:0 3px"></span></div></div>
+      </div>
+      <div class="chat-input-bar"><input v-model="chatInput" placeholder="输入你的问题..." @keyup.enter="sendChat()"><button class="send-btn" @click="sendChat()" :disabled="chatLoading">发送</button></div>
+      @keyframes blink { 0%,100%{opacity:0.3;transform:translateY(0)} 50%{opacity:1;transform:translateY(-4px)} }
+    </div>
+
+    <!-- Profile Page -->
+    <div class="page-content" v-if="page==='tab_profile'">
+      <div class="profile-card"><div class="avatar-circle">{{ form.nickname ? form.nickname[0] : '跑' }}</div><div style="font-size:20px;font-weight:700">{{ form.nickname || '跑者' }}</div><div style="font-size:13px;color:var(--accent-light);margin-top:4px">{{ goalLabel(form.goalDistance) }} · {{ form.goalTime || '完赛即可' }}</div><div class="profile-stats"><div class="summary-item"><div class="summary-val">{{ totalKmAll }}</div><div class="summary-lbl">累计跑量</div></div><div style="width:1px;background:rgba(255,255,255,0.08)"></div><div class="summary-item"><div class="summary-val">{{ completedWorkouts }}</div><div class="summary-lbl">训练次数</div></div><div style="width:1px;background:rgba(255,255,255,0.08)"></div><div class="summary-item"><div class="summary-val">{{ pbs.length }}</div><div class="summary-lbl">个人最佳</div></div></div></div>
+      <div v-if="pbs.length>0" class="card"><div style="font-size:16px;font-weight:600;margin-bottom:8px">🏆 个人最佳</div><div v-for="pb in pbs" class="pb-item"><span style="font-size:13px;color:var(--text-muted)">{{ pb.dist }}</span><span style="font-family:var(--font-mono);font-size:19px;color:var(--accent);font-weight:600">{{ pb.time }}</span><span style="font-size:12px;color:var(--text-muted)">{{ pb.date }}</span></div></div>
+      <div class="menu-list"><div class="menu-item" @click="page='sub_edit_profile'"><span class="ico">👤</span><span class="lbl">编辑资料</span><span class="arrow">→</span></div>
+        <div class="menu-item" @click="page='tab_plan'"><span class="ico">📋</span><span class="lbl">我的计划</span><span class="arrow">→</span></div>
+        <div class="menu-item" @click="page='sub_logs'"><span class="ico">📊</span><span class="lbl">训练日志</span><span class="arrow">→</span></div>
+        <div class="menu-item" @click="page='sub_analysis'"><span class="ico">📈</span><span class="lbl">趋势分析</span><span class="arrow">→</span></div>
+        <div class="menu-item" @click="page='sub_achievements'"><span class="ico">🏅</span><span class="lbl">成就墙</span><span class="arrow">→</span></div>
+        <div class="menu-item" @click="page='sub_settings'"><span class="ico">⚙️</span><span class="lbl">设置</span><span class="arrow">→</span></div></div>
+      <div style="text-align:center;font-size:11px;color:var(--text-muted);padding:20px">RunPilot AI v1.0.0</div>
+    </div>
+
+    <!-- Edit Profile -->
+    <div class="page-content" v-if="page==='sub_edit_profile'">
+      <div style="margin-bottom:16px"><label class="text-muted" style="display:block;margin-bottom:6px">昵称</label><input class="input" v-model="form.nickname" placeholder="输入昵称"></div>
+      <div style="display:flex;gap:12px;margin-bottom:16px"><div style="flex:1"><label class="text-muted" style="display:block;margin-bottom:6px">年龄</label><input class="input" type="number" v-model="form.age"></div><div style="flex:1"><label class="text-muted" style="display:block;margin-bottom:6px">身高(cm)</label><input class="input" type="number" v-model="form.height"></div></div>
+      <div style="margin-bottom:16px"><label class="text-muted" style="display:block;margin-bottom:6px">体重(kg)</label><input class="input" type="number" v-model="form.weight"></div>
+      <button class="btn btn-primary" @click="saveProfile">保存修改</button>
+    </div>
+
+    <!-- Training Logs -->
+    <div class="page-content" v-if="page==='sub_logs'">
+      <div v-if="trainingLogs.length===0" class="empty"><div class="eicon">📋</div><div class="etitle">暂无训练记录</div></div>
+      <div v-for="l in trainingLogs" class="log-card"><div class="log-header"><span style="font-size:14px;font-weight:500">{{ l.date }}</span><span class="badge" :style="{background:l.status==='done'?'rgba(76,175,80,0.2)':'rgba(255,183,77,0.2)',color:l.status==='done'?'var(--success)':'var(--warning)'}">{{ l.status==='done'?'完成':l.status==='partial'?'部分':'跳过' }}</span></div><div v-if="l.status==='done'" class="log-stats"><span class="mono" style="font-size:17px;font-weight:600">{{ l.distance }}km</span><span class="mono" style="color:var(--accent-light)">{{ l.pace }}/km</span><span v-if="l.rating" style="color:var(--text-muted)">体感 {{ l.rating }}/5</span></div></div>
+    </div>
+
+    <!-- Analysis -->
+    <div class="page-content" v-if="page==='sub_analysis'">
+      <div class="card"><div style="font-size:16px;font-weight:600;margin-bottom:10px">周跑量趋势</div><div class="chart-area"><canvas id="volChart" width="600" height="240"></canvas></div><div style="display:flex;justify-content:space-around;font-size:12px;color:var(--text-muted);margin-top:8px"><span>本周：{{ weeklyVolNow }} km</span><span>上周：{{ weeklyVolPrev }} km</span><span :style="{color:weeklyVolNow>=weeklyVolPrev?'var(--success)':'var(--error)'}">{{ weeklyVolNow>=weeklyVolPrev?'↑':'↓' }} {{ Math.abs(weeklyVolNow-weeklyVolPrev).toFixed(1) }} km</span></div></div>
+      <div class="card"><div style="font-size:16px;font-weight:600;margin-bottom:10px">配速趋势</div><div class="chart-area"><canvas id="paceChart" width="600" height="240"></canvas></div></div>
+      <div class="card"><div style="font-size:16px;font-weight:600;margin-bottom:10px">训练负荷 (ACWR)</div><div class="gauge-bar"><div class="gauge-fill" :style="{width:acwrPct+'%',background:acwrColor}"></div></div><div class="gauge-labels"><span>训练不足</span><span>最佳区间</span><span>过度训练</span></div><div style="text-align:center;font-size:19px;font-weight:700;margin-top:8px" :style="{color:acwrColor}">{{ acwrVal.toFixed(2) }} ({{ acwrStatus }})</div></div>
+    </div>
+
+    <!-- Achievements -->
+    <div class="page-content" v-if="page==='sub_achievements'">
+      <div style="margin-bottom:18px"><div style="font-size:16px;font-weight:600;margin-bottom:8px">已获得</div><div class="ach-grid"><div v-for="a in earnedAch" class="ach-item"><div class="ach-icon">{{ a.icon }}</div><div class="ach-name">{{ a.name }}</div></div></div></div>
+      <div><div style="font-size:16px;font-weight:600;margin-bottom:8px">待解锁</div><div class="ach-grid"><div v-for="a in lockedAch" class="ach-item locked"><div class="ach-icon">{{ a.icon }}</div><div class="ach-name">{{ a.name }}</div></div></div></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="page-content" v-if="page==='sub_settings'">
+      <div class="settings-title" style="margin-top:0">通知设置</div>
+      <div class="switch-wrap"><span>训练提醒</span><div class="toggle" :class="{on:settings.trainingReminder}" @click="settings.trainingReminder=!settings.trainingReminder"></div></div>
+      <div class="switch-wrap"><span>比赛倒计时提醒</span><div class="toggle" :class="{on:settings.raceReminder}" @click="settings.raceReminder=!settings.raceReminder"></div></div>
+      <div class="switch-wrap"><span>周报推送</span><div class="toggle" :class="{on:settings.weeklyReport}" @click="settings.weeklyReport=!settings.weeklyReport"></div></div>
+      <div class="settings-title" style="margin-top:14px">关于</div>
+      <div class="switch-wrap"><span>版本</span><span style="color:var(--text-muted);font-size:13px">1.0.0</span></div>
+      <button class="btn btn-outline" style="margin-top:30px;color:var(--error);border-color:var(--error)" @click="resetApp">退出登录</button>
+    </div>
+
+    <!-- Confetti -->
+    <div v-if="showConfetti" class="confetti-overlay">
+      <div v-for="p in confettiPieces" class="confetti-piece" :style="{left:p.x+'%',background:p.c,width:p.s+'px',height:p.s+'px',borderRadius:p.r?'50%':'2px',animationDelay:p.d+'s',animationDuration:p.du+'s'}"></div>
+      <div class="confetti-text"><div class="ce">🎉</div><div class="ct">训练完成！</div><div style="color:var(--text-secondary);margin-top:4px">继续加油</div></div>
+    </div>
+
+    <!-- TabBar -->
+    <div class="tabbar">
+      <div class="tab" :class="{active:page==='tab_dashboard'}" @click="page='tab_dashboard'"><span class="icon">🏠</span><span>首页</span></div>
+      <div class="tab" :class="{active:page==='tab_plan'}" @click="page='tab_plan'"><span class="icon">📋</span><span>计划</span></div>
+      <div class="tab" :class="{active:page==='tab_coach'}" @click="page='tab_coach'"><span class="icon">💬</span><span>教练</span></div>
+      <div class="tab" :class="{active:page==='tab_profile'}" @click="page='tab_profile'"><span class="icon">👤</span><span>我的</span></div>
+    </div>
+  </template>
+</div>
+
+<script>
+const { createApp, ref, reactive, computed, watch, onMounted, nextTick, toRefs } = Vue
+
+createApp({
+  setup() {
+    // --- Page State ---
+    const page = ref('onboarding1')
+    const showSessions = ref(false)
+    const showConfetti = ref(false)
+    const generatingPlan = ref(false)
+    const chatLoading = ref(false)
+    const chatInput = ref('')
+    const currentChatId = ref('')
+
+    // --- Form Data ---
+    const form = reactive({
+      age: '', gender: 'male', height: '', weight: '',
+      weeklyDays: '', experience: '',
+      times: {}, paces: {},
+      goalDistance: '', goalTime: '', goalTimeSec: 0, goalTimeCustom: '',
+      goalRaceDate: '', raceDate: '',
+      devices: [], nickname: ''
+    })
+
+    // --- Settings ---
+    const settings = reactive({ trainingReminder: true, raceReminder: true, weeklyReport: true })
+
+    // --- Training Plan ---
+    const activePlan = ref(null)
+    const planDuration = ref(12)
+    const selectedDay = ref(null)
+    const fbStatus = ref('done')
+    const fbForm = reactive({ distance: '', duration: '', rpe: 5 })
+
+    // --- Calendar ---
+    const calYear = ref(new Date().getFullYear())
+    const calMonth = ref(new Date().getMonth() + 1)
+    const calSelected = ref(null)
+
+    // --- Chat ---
+    const chatMessages = ref([])
+    const chatSessions = ref([])
+
+    // --- Training Logs ---
+    const trainingLogs = ref([])
+    const completedWorkouts = ref(0)
+    const totalKmAll = ref(0)
+
+    // --- Confetti ---
+    const confettiPieces = ref([])
+    const confettiColors = ['#FF6B35','#FFB74D','#4CAF50','#42A5F5','#AB47BC','#EF5350']
+
+    // --- Constants ---
+    const distances = [
+      { key:'s1k', label:'1 公里', placeholder:'3:30', m:1000 },
+      { key:'s3k', label:'3 公里', placeholder:'12:00', m:3000 },
+      { key:'s5k', label:'5 公里', placeholder:'25:00', m:5000 },
+      { key:'s10k', label:'10 公里', placeholder:'50:00', m:10000 }
+    ]
+    const goalDistances = [
+      { v:'5k', l:'5 公里', c:'入门首选' },
+      { v:'10k', l:'10 公里', c:'进阶挑战' },
+      { v:'half_marathon', l:'半程马拉松', c:'21.0975km' },
+      { v:'marathon', l:'全程马拉松', c:'42.195km' }
+    ]
+    const platforms = [
+      { v:'garmin', l:'Garmin Connect', c:'Garmin手表数据', e:'⌚' },
+      { v:'apple_health', l:'Apple Health', c:'iPhone/Apple Watch', e:'🍎' },
+      { v:'strava', l:'Strava', c:'全球跑者社区', e:'🏃' },
+      { v:'coros', l:'Coros', c:'高驰运动手表', e:'⛰' },
+      { v:'keep', l:'Keep', c:'国内健身平台', e:'💪' }
+    ]
+
+    const workoutTypes = {
+      rest: { label:'休息', emoji:'🌙', color:'#6B6E7D' },
+      easy: { label:'轻松跑', emoji:'🏃', color:'#4CAF50' },
+      tempo: { label:'节奏跑', emoji:'⚡', color:'#FFB74D' },
+      interval: { label:'间歇跑', emoji:'⏱', color:'#EF5350' },
+      long: { label:'LSD长距离', emoji:'🛣', color:'#AB47BC' },
+      recovery: { label:'恢复跑', emoji:'💚', color:'#42A5F5' }
+    }
+
+    const phases = {
+      base: { label:'基础期', color:'#4CAF50' },
+      build: { label:'强化期', color:'#FFB74D' },
+      race: { label:'竞赛期', color:'#FF6B35' },
+      taper: { label:'比赛周', color:'#42A5F5' }
+    }
+
+    const quickQuestions = [
+      '训练前如何热身？', '节奏跑和间歇跑的区别？', '跑完膝盖疼怎么办？',
+      '比赛前一周怎么准备？', '如何提高步频？', '什么是LSD训练？'
+    ]
+
+    const quickLinks = [
+      { ico:'📋', lbl:'训练计划', page:'tab_plan' },
+      { ico:'💬', lbl:'AI教练', page:'tab_coach' },
+      { ico:'📊', lbl:'训练日志', page:'sub_logs' },
+      { ico:'📈', lbl:'趋势分析', page:'sub_analysis' }
+    ]
+
+    const pbs = ref([
+      { dist:'5KM', time:'25:30', date:'2026-03-15' },
+      { dist:'10KM', time:'52:15', date:'2026-02-20' }
+    ])
+
+    const earnedAch = ref([
+      { icon:'🏃', name:'初次5公里' }, { icon:'🔥', name:'连续7天' }, { icon:'🏆', name:'5K PB' }
+    ])
+    const lockedAch = ref([
+      { icon:'🏅', name:'初次10公里' }, { icon:'💪', name:'月跑量100K' }, { icon:'🌟', name:'半马达成' }, { icon:'👑', name:'全马达成' }, { icon:'🔥', name:'连续30天' }
+    ])
+
+    const dailyTip = ref('每一次跑步，都是和自己的对话。坚持下去，你会发现更好的自己。')
+
+    // --- Computed ---
+    const hasActivePlan = computed(() => !!activePlan.value)
+    const currentWeek = computed(() => {
+      if (!activePlan.value) return 1
+      const start = new Date(activePlan.value.start_date)
+      const now = new Date()
+      const diff = Math.floor((now - start) / (7*86400000))
+      return Math.max(1, Math.min(diff + 1, activePlan.value.total_weeks))
+    })
+
+    const todayWorkout = computed(() => {
+      if (!activePlan.value) return null
+      const week = activePlan.value.weeks[currentWeek.value - 1]
+      if (!week) return null
+      const dayKeys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
+      const today = dayKeys[new Date().getDay()]
+      return week.days.find(d => d.day === today) || null
+    })
+
+    const weeklyDone = ref(0)
+    const weeklyTotal = computed(() => {
+      if (!activePlan.value) return 0
+      const week = activePlan.value.weeks[currentWeek.value - 1]
+      return week ? week.days.filter(d => d.type !== 'rest').length : 0
+    })
+    const weeklyPct = computed(() => weeklyTotal.value > 0 ? Math.round(weeklyDone.value/weeklyTotal.value*100) : 0)
+    const weekTotalKm = computed(() => activePlan.value?.weeks[currentWeek.value-1]?.total_km || 0)
+    const summaryItems = computed(() => [
+      { val: '32.5', lbl: '近7天跑量(km)' },
+      { val: String(completedWorkouts.value), lbl: '总训练次数' },
+      { val: "5'42\"", lbl: '平均配速' },
+      { val: String(totalKmAll.value), lbl: '累计跑量(km)' }
+    ])
+
+    const goalPresets = computed(() => {
+      const presets = {
+        '5k': [{label:'20:00',sec:1200},{label:'25:00',sec:1500},{label:'30:00',sec:1800},{label:'35:00',sec:2100}],
+        '10k': [{label:'40:00',sec:2400},{label:'45:00',sec:2700},{label:'50:00',sec:3000},{label:'55:00',sec:3300}],
+        'half_marathon': [{label:'1:30:00',sec:5400},{label:'1:45:00',sec:6300},{label:'2:00:00',sec:7200},{label:'2:15:00',sec:8100}],
+        'marathon': [{label:'3:30:00',sec:12600},{label:'4:00:00',sec:14400},{label:'4:30:00',sec:16200},{label:'5:00:00',sec:18000}]
+      }
+      return presets[form.goalDistance] || []
+    })
+
+    const raceDays = ref(0), raceHours = ref(0), raceMins = ref(0)
+    const motivationText = computed(() => {
+      if (raceDays.value <= 0) return '比赛日就是今天，加油！'
+      if (raceDays.value <= 7) return '最后冲刺，相信自己！'
+      if (raceDays.value <= 30) return '关键备战期，坚持就是胜利'
+      return '持续积累，量变引起质变'
+    })
+
+    const todayDate = computed(() => { const d=new Date(); return `${d.getMonth()+1}月${d.getDate()}日` })
+    const todayWeekday = computed(() => ['周日','周一','周二','周三','周四','周五','周六'][new Date().getDay()])
+
+    const weeklyVolNow = ref(38), weeklyVolPrev = ref(42)
+    const acwrVal = ref(1.15), acwrPct = ref(55), acwrColor = ref('#4CAF50'), acwrStatus = ref('最佳')
+
+    const currentNavTitle = computed(() => {
+      const map = {
+        tab_dashboard:'RunPilot', tab_plan:'训练计划', tab_coach:'AI 教练', tab_profile:'我的',
+        sub_calendar:'训练日历', sub_workout_detail:'训练详情', sub_feedback:'训练反馈',
+        sub_logs:'训练日志', sub_analysis:'趋势分析', sub_achievements:'成就墙',
+        sub_edit_profile:'编辑资料', sub_settings:'设置'
+      }
+      return map[page.value] || ''
+    })
+
+    const calGrid = computed(() => {
+      const grid = []
+      const firstDay = new Date(calYear.value, calMonth.value-1, 1)
+      const startDow = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1
+      const daysInMonth = new Date(calYear.value, calMonth.value, 0).getDate()
+      const today = new Date().toISOString().split('T')[0]
+
+      for (let i = 0; i < startDow; i++) grid.push({day:'',isCurrent:false,isToday:false,hasWorkout:false,date:''})
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${calYear.value}-${String(calMonth.value).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+        let hasWorkout = false, wo = null
+        if (activePlan.value) {
+          const weekIdx = currentWeek.value - 1
+          const week = activePlan.value.weeks[weekIdx]
+          if (week) {
+            const dayKeys = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday']
+            const planStart = new Date(activePlan.value.start_date)
+            const cellDate = new Date(dateStr)
+            const cellDow = cellDate.getDay() === 0 ? 6 : cellDate.getDay() - 1
+            // rough match
+            if (weekIdx >= 0 && weekIdx < activePlan.value.total_weeks) {
+              dayKeys.forEach((dk, di) => {
+                const wd = new Date(activePlan.value.start_date)
+                wd.setDate(wd.getDate() + weekIdx * 7 + di)
+                if (wd.toISOString().split('T')[0] === dateStr) {
+                  const day = week.days.find(dd => dd.day === dk)
+                  if (day && day.type !== 'rest') { hasWorkout = true; wo = day }
+                }
+              })
+            }
+          }
+        }
+        grid.push({day:d,isCurrent:true,isToday:dateStr===today,hasWorkout,wo,date:dateStr})
+      }
+
+      while (grid.length % 7 !== 0) grid.push({day:'',isCurrent:false,isToday:false,hasWorkout:false,date:''})
+      return grid
+    })
+
+    const calLegend = [
+      {c:'#4CAF50',l:'轻松跑'},{c:'#FFB74D',l:'节奏跑'},{c:'#EF5350',l:'间歇跑'},{c:'#AB47BC',l:'LSD'},{c:'#42A5F5',l:'恢复跑'}
+    ]
+
+    // --- Helpers ---
+    function goalLabel(v) {
+      const m = {'5k':'5公里','10k':'10公里','half_marathon':'半马','marathon':'全马'}
+      return m[v] || v
+    }
+    function workoutColor(t) { return (workoutTypes[t]||workoutTypes.rest).color }
+    function workoutEmoji(t) { return (workoutTypes[t]||workoutTypes.rest).emoji }
+    function workoutLabel(t) { return (workoutTypes[t]||workoutTypes.rest).label }
+    function phaseLabel(p) { return (phases[p]||phases.base).label }
+    function phaseColor(p) { return (phases[p]||phases.base).color }
+    function rpeColor(i) {
+      if (i<=3) return '#42A5F5'
+      if (i<=5) return '#4CAF50'
+      if (i<=7) return '#FFB74D'
+      return '#EF5350'
+    }
+    function dayLabel(d) {
+      const m = {monday:'一',tuesday:'二',wednesday:'三',thursday:'四',friday:'五',saturday:'六',sunday:'日'}
+      return '周'+(m[d]||d)
+    }
+
+    function calcPace(key) {
+      const t = form.times[key]
+      if (!t) { form.paces[key] = ''; return }
+      const dist = distances.find(d => d.key === key)
+      if (!dist) return
+      const sec = parseTime(t)
+      if (sec > 0) form.paces[key] = formatPace(Math.round(sec / (dist.m / 1000)))
+      else form.paces[key] = ''
+    }
+
+    function parseTime(str) {
+      const hhmmss = str.match(/^(\d{1,2}):(\d{2}):(\d{2})$/)
+      if (hhmmss) return parseInt(hhmmss[1])*3600 + parseInt(hhmmss[2])*60 + parseInt(hhmmss[3])
+      const mmss = str.match(/^(\d{1,2}):(\d{2})$/)
+      if (mmss) return parseInt(mmss[1])*60 + parseInt(mmss[2])
+      return 0
+    }
+    function formatPace(sec) {
+      if (!sec || sec <= 0) return "--'--\""
+      return `${Math.floor(sec/60)}'${String(sec%60).padStart(2,'0')}"`
+    }
+    function parseCustomTime() {
+      const t = form.goalTimeCustom
+      if (!t) return
+      const sec = parseTime(t)
+      if (sec > 0) { form.goalTime = t; form.goalTimeSec = sec }
+    }
+    function toggleDevice(platform) {
+      const idx = form.devices.indexOf(platform)
+      if (idx > -1) form.devices.splice(idx, 1)
+      else form.devices.push(platform)
+    }
+
+    // --- Navigation ---
+    function goBack() {
+      const subPages = ['sub_calendar','sub_workout_detail','sub_feedback','sub_logs','sub_analysis','sub_achievements','sub_edit_profile','sub_settings']
+      if (subPages.includes(page.value)) {
+        if (page.value === 'sub_feedback') page.value = 'sub_workout_detail'
+        else if (page.value === 'sub_workout_detail') page.value = 'tab_plan'
+        else if (page.value === 'sub_calendar') page.value = 'tab_plan'
+        else page.value = 'tab_profile'
+      }
+    }
+
+    // --- Onboarding ---
+    function completeOnboarding() {
+      form.nickname = '跑者' + (form.gender === 'male' ? '🏃‍♂️' : '🏃‍♀️')
+      form.onboardingDone = true
+      if (!form.goalRaceDate) {
+        const raceDate = new Date()
+        raceDate.setDate(raceDate.getDate() + 84)
+        form.goalRaceDate = raceDate.toISOString().split('T')[0]
+      }
+      if (form.goalDistance) generateSamplePlan()
+      page.value = 'tab_dashboard'
+      updateCountdown()
+    }
+
+    // --- Plan Generation ---
+    function generatePlan() {
+      generatingPlan.value = true
+      setTimeout(() => {
+        generateSamplePlan()
+        generatingPlan.value = false
+        showConfettiFn('🎯','训练计划已生成！','开始你的训练之旅')
+      }, 2000)
+    }
+
+    function generateSamplePlan() {
+      const weeks = []
+      const phases = [
+        {name:'base',start_week:1,end_week:3,focus:'aerobic'},
+        {name:'build',start_week:4,end_week:7,focus:'threshold'},
+        {name:'race',start_week:8,end_week:10,focus:'specific'},
+        {name:'taper',start_week:11,end_week:12,focus:'peak'}
+      ]
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - startDate.getDay() + 1) // next Monday
+
+      for (let w = 1; w <= 12; w++) {
+        const phase = phases.find(p => w >= p.start_week && w <= p.end_week)
+        const days = [
+          {day:'monday',type:'rest',description:'休息日',coach_note:'周一充分休息，为本周训练储备能量'},
+          {day:'tuesday',type:w<=3?'easy':w<=7?'tempo':'interval',distance_km:w<=3?6:w<=7?8:10,target_pace:w<=3?"6'10\"":w<=7?"5'30\"":"5'00\"",duration_min:w<=3?37:w<=7?44:50,rpe_target:w<=3?4:w<=7?6:8,description:w<=3?'轻松有氧跑，保持对话配速':w<=7?'节奏跑，保持稳定配速':'间歇跑，提升最大摄氧量',coach_note:w<=3?'关注跑姿流畅性':w<=7?'保持均匀配速':'每组尽力完成，组间充分恢复'},
+          {day:'wednesday',type:'easy',distance_km:7,target_pace:"6'10\"",duration_min:43,rpe_target:4,description:'恢复性轻松跑',coach_note:'慢一点，专注于恢复'},
+          {day:'thursday',type:w<=3?'easy':w<=7?'interval':'tempo',distance_km:w<=3?8:w<=7?10:9,target_pace:w<=3?"6'00\"":w<=7?"5'15\"":"5'20\"",duration_min:w<=3?48:w<=7?53:48,rpe_target:w<=3?5:w<=7?8:7,description:w<=3?'稳定有氧跑':w<=7?'间歇训练':'节奏跑',coach_note:w<=3?'保持稳定':w<=7?'注意间歇质量':'模拟比赛配速'},
+          {day:'friday',type:'rest',description:'休息日',coach_note:'为周末长距离做好准备'},
+          {day:'saturday',type:'long',distance_km:w<=3?12:w<=7?16:Math.min(22,10+w*1.5),target_pace:"6'20\"",duration_min:w*6+30,rpe_target:6,description:'LSD长距离慢跑',coach_note:'保持轻松配速，重点是时间和距离'},
+          {day:'sunday',type:'recovery',distance_km:5,target_pace:"6'30\"",duration_min:33,rpe_target:3,description:'恢复跑',coach_note:'非常轻松，帮助身体恢复'}
+        ]
+        weeks.push({week_number:w,phase:phase.name,total_km:days.reduce((s,d)=>s+(d.distance_km||0),0),days})
+      }
+
+      activePlan.value = {
+        plan_name: `${goalLabel(form.goalDistance||'5k')}${Math.ceil((form.goalTimeSec||1800)/60)||'完赛'}训练计划`,
+        goal_distance: form.goalDistance||'5k', goal_time_sec: form.goalTimeSec||1800,
+        total_weeks: 12, current_phase: 'base', start_date: startDate.toISOString().split('T')[0],
+        phases, weeks, status: 'active'
+      }
+    }
+
+    function adjustPlan() {
+      const reason = prompt('请描述调整原因（如太累、时间不足、伤病等）：')
+      if (reason) {
+        alert('已收到调整请求。在完整版中，AI 会分析你的反馈并自动优化训练计划。')
+      }
+    }
+
+    // --- Workout ---
+    function completeWorkout(status) {
+      fbStatus.value = status
+      fbForm.distance = selectedDay.value?.distance_km || ''
+      fbForm.duration = selectedDay.value?.duration_min || ''
+      fbForm.rpe = selectedDay.value?.rpe_target || 5
+      page.value = 'sub_feedback'
+    }
+
+    function submitFeedback() {
+      const dist = parseFloat(fbForm.distance) || 0
+      const pace = fbForm.distance && fbForm.duration ? formatPace(Math.round(fbForm.duration*60/fbForm.distance)) : "--'--\""
+
+      trainingLogs.value.unshift({
+        date: new Date().toISOString().split('T')[0],
+        status: fbStatus.value, distance: dist, pace: pace,
+        rating: fbForm.rpe
+      })
+      if (fbStatus.value === 'done') {
+        completedWorkouts.value++
+        totalKmAll.value += dist
+        weeklyDone.value++
+      }
+      if (fbStatus.value === 'done') showConfettiFn('🎉','训练完成！','继续加油')
+      page.value = 'tab_dashboard'
+      setTimeout(() => page.value = 'tab_dashboard', 100)
+    }
+
+    // --- Chat ---
+    function sendChat(text) {
+      const msg = text || chatInput.value.trim()
+      if (!msg || chatLoading.value) return
+      if (!currentChatId.value) newChat()
+      chatMessages.value.push({role:'user',content:msg.replace(/\n/g,'<br>')})
+      chatInput.value = ''
+      chatLoading.value = true
+
+      setTimeout(() => {
+        chatLoading.value = false
+        const replies = {
+          '训练': '建议训练前做5-10分钟动态热身（高抬腿、开合跳等），训练后做静态拉伸。',
+          '节奏跑': '节奏跑是以乳酸阈配速进行的持续跑。间隙跑是短距离高强度 + 间歇休息。节奏跑提升耐力，间隙跑提升速度和VO2max。',
+          '膝盖': '膝盖疼痛可能由多种原因引起。建议：1)检查跑鞋是否合适 2)适当减少跑量 3)加强股四头肌和臀肌训练。如果持续疼痛请咨询医生。',
+          '准备': '比赛前一周应减量30-50%，保证充足睡眠，注意碳水摄入。比赛前2-3天做短距离轻松跑保持状态。',
+          '步频': '理想步频在170-180步/分钟。可以通过节拍器APP辅助训练，循序渐进提高。',
+          'LSD': 'LSD(Long Slow Distance)是长距离慢跑，配速比目标比赛配速慢30-60秒/km。目的是建立有氧基础和提升脂肪供能效率。'
+        }
+        let reply = '好问题！作为你的AI教练，我建议根据你的具体情况进行调整。'
+        Object.entries(replies).forEach(([k,v]) => { if (msg.includes(k)) reply = v })
+        chatMessages.value.push({role:'assistant',content:reply})
+        // Update session
+        if (chatSessions.value.length > 0) {
+          chatSessions.value[0].preview = reply.slice(0,30)
+        }
+      }, 1500)
+    }
+
+    function newChat() {
+      currentChatId.value = 'chat_' + Date.now()
+      chatMessages.value = []
+      chatSessions.value.unshift({id:currentChatId.value,title:'新对话',preview:''})
+    }
+    function loadChat(id) {
+      currentChatId.value = id
+      chatMessages.value = [{role:'assistant',content:'对话已恢复。继续你的训练咨询吧！'}]
+    }
+
+    // --- Profile ---
+    function saveProfile() {
+      alert('资料已保存！')
+      page.value = 'tab_profile'
+    }
+    function resetApp() {
+      if (confirm('确定要退出登录吗？所有数据将被清除。')) {
+        localStorage.clear()
+        location.reload()
+      }
+    }
+
+    // --- Confetti ---
+    function showConfettiFn(emoji, title, sub) {
+      confettiPieces.value = Array.from({length:30}, (_,i) => ({
+        x:Math.random()*100, c:confettiColors[Math.floor(Math.random()*confettiColors.length)],
+        s:4+Math.random()*10, r:Math.random()>0.5, d:Math.random()*0.5, du:1.5+Math.random()*2
+      }))
+      showConfetti.value = true
+      setTimeout(() => { showConfetti.value = false }, 3000)
+    }
+
+    // --- Timer ---
+    function updateCountdown() {
+      if (!form.goalRaceDate) return
+      const now = new Date()
+      const race = new Date(form.goalRaceDate)
+      const diff = race - now
+      if (diff <= 0) { raceDays.value=0; raceHours.value=0; raceMins.value=0; return }
+      raceDays.value = Math.floor(diff/(1000*60*60*24))
+      raceHours.value = Math.floor((diff%(1000*60*60*24))/(1000*60*60))
+      raceMins.value = Math.floor((diff%(1000*60*60))/(1000*60))
+    }
+
+    setInterval(updateCountdown, 60000)
+    updateCountdown()
+
+    // --- Draw ring ---
+    function drawRing() {
+      setTimeout(() => {
+        const canvas = document.getElementById('ringCanvas')
+        if (!canvas) return
+        const ctx = canvas.getContext('2d')
+        const cx=140, cy=140, r=120, lw=8
+        ctx.clearRect(0,0,280,280)
+        ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=lw;ctx.stroke()
+        const pct = weeklyPct.value
+        const end = (pct/100)*Math.PI*2 - Math.PI/2
+        ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,end);ctx.strokeStyle='#FF6B35';ctx.lineWidth=lw;ctx.lineCap='round';ctx.stroke()
+      }, 100)
+    }
+
+    // --- Draw charts ---
+    function drawCharts() {
+      setTimeout(() => {
+        ['volChart','paceChart'].forEach(id => {
+          const canvas = document.getElementById(id)
+          if (!canvas) return
+          const ctx = canvas.getContext('2d')
+          const w=600,h=240
+          ctx.clearRect(0,0,w,h)
+          const data = id==='volChart' ? [28,35,32,38,42,36,45,38] : [370,360,355,345,350,340,335,330]
+          const color = id==='volChart' ? '#FF6B35' : '#42A5F5'
+          const fill = id==='volChart' ? 'rgba(255,107,53,0.15)' : 'rgba(66,165,245,0.15)'
+          const max=Math.max(...data), min=Math.min(...data), range=max-min||1
+          const margin={t:20,r:20,b:20,l:10}, pw=w-margin.l-margin.r, ph=h-margin.t-margin.b
+
+          const pts = data.map((v,i) => ({
+            x:margin.l+(i/(data.length-1))*pw,
+            y:margin.t+(1-(v-min)/range)*ph
+          }))
+
+          ctx.beginPath();ctx.moveTo(pts[0].x,margin.t+ph)
+          pts.forEach(p=>ctx.lineTo(p.x,p.y))
+          ctx.lineTo(pts[pts.length-1].x,margin.t+ph);ctx.closePath();ctx.fillStyle=fill;ctx.fill()
+
+          ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y)
+          for(let i=1;i<pts.length;i++){const cpx1=pts[i-1].x+(pts[i].x-pts[i-1].x)/3;ctx.bezierCurveTo(cpx1,pts[i-1].y,pts[i].x-(pts[i].x-pts[i-1].x)/3,pts[i].y,pts[i].x,pts[i].y)}
+          ctx.strokeStyle=color;ctx.lineWidth=3;ctx.stroke()
+
+          pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,2.5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill()})
+        })
+      }, 200)
+    }
+
+    // --- Watchers & Lifecycle ---
+    watch(page, (val) => {
+      if (val === 'tab_dashboard') { setTimeout(drawRing, 100) }
+      if (val === 'sub_analysis') { setTimeout(drawCharts, 200) }
+    })
+
+    // Save/load state
+    const saved = localStorage.getItem('runpilot_state')
+    if (saved) {
+      try {
+        const state = JSON.parse(saved)
+        if (state.onboardingDone) {
+          Object.assign(form, state.form || {})
+          if (state.activePlan) activePlan.value = state.activePlan
+          if (state.logs) trainingLogs.value = state.logs
+          completedWorkouts.value = state.completedWorkouts || 12
+          totalKmAll.value = state.totalKmAll || 168
+          weeklyDone.value = state.weeklyDone || 0
+          page.value = 'tab_dashboard'
+        }
+      } catch(e) {}
+    }
+
+    // Auto-save
+    setInterval(() => {
+      localStorage.setItem('runpilot_state', JSON.stringify({
+        onboardingDone: form.onboardingDone,
+        form: JSON.parse(JSON.stringify(form)),
+        activePlan: activePlan.value,
+        logs: trainingLogs.value,
+        completedWorkouts: completedWorkouts.value,
+        totalKmAll: totalKmAll.value,
+        weeklyDone: weeklyDone.value
+      }))
+    }, 3000)
+
+    return {
+      page, showSessions, showConfetti, generatingPlan, chatLoading, chatInput,
+      currentChatId, form, settings, activePlan, planDuration, selectedDay,
+      fbStatus, fbForm, calYear, calMonth, calSelected, chatMessages, chatSessions,
+      trainingLogs, completedWorkouts, totalKmAll, confettiPieces,
+      distances, goalDistances, platforms, quickQuestions, quickLinks, pbs,
+      earnedAch, lockedAch, dailyTip,
+      hasActivePlan, currentWeek, todayWorkout, weeklyTotal, weeklyDone, weeklyPct,
+      weekTotalKm, summaryItems, goalPresets, raceDays, raceHours, raceMins,
+      motivationText, todayDate, todayWeekday,
+      weeklyVolNow, weeklyVolPrev, acwrVal, acwrPct, acwrColor, acwrStatus,
+      currentNavTitle, calGrid, calLegend,
+      goalLabel, workoutColor, workoutEmoji, workoutLabel, phaseLabel, phaseColor,
+      rpeColor, dayLabel,
+      calcPace, parseTime, formatPace, parseCustomTime, toggleDevice,
+      goBack, completeOnboarding, generatePlan, adjustPlan,
+      completeWorkout, submitFeedback,
+      sendChat, newChat, loadChat,
+      saveProfile, resetApp,
+      drawRing, drawCharts
+    }
+  }
+}).mount('#app')
+</script>
+</body>
+</html>

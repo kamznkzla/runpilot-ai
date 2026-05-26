@@ -1,0 +1,81 @@
+/* === RunPilot AI - Global Design Tokens === */
+
+/* === Color Palette === */
+$color-bg-primary: #0F0F1A;
+$color-bg-secondary: #1A1A2E;
+$color-bg-card: #1E1E35;
+$color-bg-card-hover: #252540;
+$color-bg-input: #2A2A40;
+
+$color-accent: #FF6B35;
+$color-accent-light: #FF8C5A;
+$color-accent-dark: #E55A2B;
+$color-accent-glow: rgba(255, 107, 53, 0.3);
+
+$color-text-primary: #FFFFFF;
+$color-text-secondary: #B0B3C0;
+$color-text-muted: #6B6E7D;
+$color-text-inverse: #1A1A2E;
+
+$color-success: #4CAF50;
+$color-success-glow: rgba(76, 175, 80, 0.3);
+$color-warning: #FFB74D;
+$color-error: #EF5350;
+$color-info: #42A5F5;
+
+$color-phase-base: #4CAF50;
+$color-phase-build: #FFB74D;
+$color-phase-race: #FF6B35;
+$color-phase-taper: #42A5F5;
+
+$color-workout-easy: #4CAF50;
+$color-workout-tempo: #FFB74D;
+$color-workout-interval: #EF5350;
+$color-workout-long: #AB47BC;
+$color-workout-recovery: #42A5F5;
+$color-workout-rest: #6B6E7D;
+
+/* === Typography === */
+$font-family-base: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+$font-family-number: 'JetBrains Mono', 'Menlo', 'Courier New', monospace;
+
+$font-size-xs: 20rpx;
+$font-size-sm: 24rpx;
+$font-size-base: 28rpx;
+$font-size-md: 32rpx;
+$font-size-lg: 36rpx;
+$font-size-xl: 44rpx;
+$font-size-xxl: 56rpx;
+$font-size-hero: 72rpx;
+
+/* === Spacing === */
+$spacing-xs: 8rpx;
+$spacing-sm: 16rpx;
+$spacing-md: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 48rpx;
+$spacing-xxl: 64rpx;
+
+/* === Border Radius === */
+$radius-sm: 8rpx;
+$radius-md: 16rpx;
+$radius-lg: 24rpx;
+$radius-xl: 32rpx;
+$radius-round: 100rpx;
+$radius-circle: 50%;
+
+/* === Shadows === */
+$shadow-card: 0 4rpx 20rpx rgba(0, 0, 0, 0.3);
+$shadow-card-hover: 0 8rpx 32rpx rgba(0, 0, 0, 0.4);
+$shadow-glow: 0 0 24rpx $color-accent-glow;
+
+/* === Animation === */
+$transition-fast: 0.15s ease;
+$transition-normal: 0.25s ease;
+$transition-slow: 0.4s ease;
+
+/* === Layout === */
+$navbar-height: 88rpx;
+$tabbar-height: 100rpx;
+$content-padding: $spacing-md;
+$card-padding: $spacing-md;

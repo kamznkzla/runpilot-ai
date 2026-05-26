@@ -1,0 +1,9 @@
+{
+  "name": "ai-generate-plan",
+  "version": "1.0.0",
+  "description": "AI生成训练计划云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

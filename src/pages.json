@@ -1,0 +1,154 @@
+{
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^rp-(.*)": "@/components/rp-$1.vue"
+    }
+  },
+  "pages": [
+    {
+      "path": "pages/dashboard/index",
+      "style": {
+        "navigationBarTitleText": "RunPilot",
+        "navigationBarBackgroundColor": "#1A1A2E",
+        "navigationBarTextStyle": "white",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/plan/index",
+      "style": {
+        "navigationBarTitleText": "训练计划",
+        "navigationBarBackgroundColor": "#1A1A2E",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/plan/calendar",
+      "style": {
+        "navigationBarTitleText": "训练日历",
+        "navigationBarBackgroundColor": "#1A1A2E",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/coach/index",
+      "style": {
+        "navigationBarTitleText": "AI 教练",
+        "navigationBarBackgroundColor": "#1A1A2E",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "我的",
+        "navigationBarBackgroundColor": "#1A1A2E",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/profile/edit",
+      "style": {
+        "navigationBarTitleText": "编辑资料",
+        "navigationBarBackgroundColor": "#1A1A2E",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/profile/settings",
+      "style": {
+        "navigationBarTitleText": "设置",
+        "navigationBarBackgroundColor": "#1A1A2E",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/profile/achievements",
+      "style": {
+        "navigationBarTitleText": "成就墙",
+        "navigationBarBackgroundColor": "#1A1A2E",
+        "navigationBarTextStyle": "white"
+      }
+    }
+  ],
+  "subPackages": [
+    {
+      "root": "subpkg-onboarding",
+      "pages": [
+        { "path": "pages/step1-profile", "style": { "navigationBarTitleText": "基本信息", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } },
+        { "path": "pages/step2-experience", "style": { "navigationBarTitleText": "跑步经验", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } },
+        { "path": "pages/step3-records", "style": { "navigationBarTitleText": "历史成绩", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } },
+        { "path": "pages/step4-goal", "style": { "navigationBarTitleText": "目标设定", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } },
+        { "path": "pages/step5-device", "style": { "navigationBarTitleText": "设备绑定", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } }
+      ]
+    },
+    {
+      "root": "subpkg-training",
+      "pages": [
+        { "path": "pages/workout-detail", "style": { "navigationBarTitleText": "训练详情", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } },
+        { "path": "pages/workout-feedback", "style": { "navigationBarTitleText": "训练反馈", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } },
+        { "path": "pages/workout-log", "style": { "navigationBarTitleText": "训练日志", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } },
+        { "path": "pages/trend-analysis", "style": { "navigationBarTitleText": "趋势分析", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } }
+      ]
+    },
+    {
+      "root": "subpkg-sharing",
+      "pages": [
+        { "path": "pages/training-card", "style": { "navigationBarTitleText": "训练卡片", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } },
+        { "path": "pages/weekly-recap", "style": { "navigationBarTitleText": "周报", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } },
+        { "path": "pages/monthly-recap", "style": { "navigationBarTitleText": "月报", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } },
+        { "path": "pages/share-settings", "style": { "navigationBarTitleText": "分享设置", "navigationBarBackgroundColor": "#1A1A2E", "navigationBarTextStyle": "white" } }
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/dashboard/index": {
+      "network": "all",
+      "packages": ["subpkg-training"]
+    },
+    "pages/plan/index": {
+      "network": "all",
+      "packages": ["subpkg-training", "subpkg-sharing"]
+    }
+  },
+  "globalStyle": {
+    "navigationBarBackgroundColor": "#1A1A2E",
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "RunPilot",
+    "backgroundColor": "#0F0F1A",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#FF6B35",
+    "backgroundColor": "#1A1A2E",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/dashboard/index",
+        "iconPath": "static/images/tabbar/home.png",
+        "selectedIconPath": "static/images/tabbar/home-active.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/plan/index",
+        "iconPath": "static/images/tabbar/plan.png",
+        "selectedIconPath": "static/images/tabbar/plan-active.png",
+        "text": "计划"
+      },
+      {
+        "pagePath": "pages/coach/index",
+        "iconPath": "static/images/tabbar/coach.png",
+        "selectedIconPath": "static/images/tabbar/coach-active.png",
+        "text": "教练"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "iconPath": "static/images/tabbar/profile.png",
+        "selectedIconPath": "static/images/tabbar/profile-active.png",
+        "text": "我的"
+      }
+    ]
+  }
+}

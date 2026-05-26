@@ -1,0 +1,32 @@
+{
+  "name": "users",
+  "description": "用户信息集合",
+  "version": "1.0.0",
+  "properties": {
+    "_id": { "type": "string", "description": "自动生成" },
+    "_openid": { "type": "string", "description": "微信OpenID，自动填充" },
+    "nickname": { "type": "string", "description": "用户昵称", "default": "跑者" },
+    "avatarUrl": { "type": "string", "description": "头像URL" },
+    "gender": { "type": "string", "enum": ["male", "female"], "description": "性别" },
+    "age": { "type": "number", "description": "年龄" },
+    "height_cm": { "type": "number", "description": "身高(cm)" },
+    "weight_kg": { "type": "number", "description": "体重(kg)" },
+    "running_experience": { "type": "string", "enum": ["beginner", "intermediate", "advanced"] },
+    "weeklyVolume": { "type": "string", "description": "当前每周跑量" },
+    "weeklyDays": { "type": "string", "description": "每周训练天数" },
+    "recent_races": { "type": "object", "description": "最近比赛成绩" },
+    "goal_distance": { "type": "string", "enum": ["5k", "10k", "half_marathon", "marathon"] },
+    "goal_time_sec": { "type": "number", "description": "目标完赛时间(秒)" },
+    "goal_time_display": { "type": "string", "description": "目标时间显示字符串" },
+    "goal_race_date": { "type": "string", "description": "目标比赛日期" },
+    "connected_devices": { "type": "array", "items": { "type": "string" } },
+    "onboarding_completed": { "type": "boolean", "default": false },
+    "onboarding_step": { "type": "number", "default": 0 },
+    "created_at": { "type": "string" },
+    "updated_at": { "type": "string" }
+  },
+  "required": ["_openid"],
+  "indexes": [
+    { "name": "openid_idx", "keys": ["_openid"], "unique": true }
+  ]
+}

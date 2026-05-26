@@ -1,0 +1,33 @@
+{
+  "name": "RunPilot AI",
+  "appid": "__UNI_APP_ID__",
+  "description": "AI智能跑步训练计划",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wx_your_app_id_here",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "minified": true,
+      "postcss": true
+    },
+    "usingComponents": true,
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于记录跑步路线"
+      },
+      "scope.record": {
+        "desc": "用于AI语音对话"
+      }
+    },
+    "requiredPrivateInfos": ["getLocation"],
+    "lazyCodeLoading": "requiredComponents",
+    "__cloud_env": "runpilot-cloud-xxxxx"
+  },
+  "uniStatistics": {
+    "enable": false
+  },
+  "vueVersion": "3"
+}
