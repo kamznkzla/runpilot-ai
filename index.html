@@ -406,6 +406,9 @@ body {
 /* Quick questions */
 .quick-q { display: inline-block; background: rgba(255,255,255,0.06); border-radius: var(--radius-round); padding: 8px 16px; margin: 4px; cursor: pointer; font-size: 13px; color: var(--text-secondary); }
 .quick-q:active { background: rgba(255,107,53,0.15); }
+
+/* Chat loading dots */
+@keyframes blink { 0%,100%{opacity:0.3;transform:translateY(0)} 50%{opacity:1;transform:translateY(-4px)} }
 </style>
 </head>
 <body>
@@ -572,7 +575,7 @@ body {
         <div style="font-size:16px;font-weight:600;margin-bottom:8px">本周进度</div>
         <div class="card">
           <div class="weekly-progress">
-            <div class="ring-wrap"><canvas id="ringCanvas" width="280" height="280"></canvas><div class="ring-content"><div class="ring-value">{{ weeklyPct }}%</div><div class="ring-label">{{ weeklyDone }}/{{ weeklyTotal }} 次完成</div><div style="font-size:11px;color:var(--text-muted)">第 {{ currentWeek }}/{{ activePlan.total_weeks }} 周</div></div></div>
+            <div class="ring-wrap"><canvas id="ringCanvas" width="140" height="140"></canvas><div class="ring-content"><div class="ring-value">{{ weeklyPct }}%</div><div class="ring-label">{{ weeklyDone }}/{{ weeklyTotal }} 次完成</div><div style="font-size:11px;color:var(--text-muted)">第 {{ currentWeek }}/{{ activePlan.total_weeks }} 周</div></div></div>
             <div style="flex:1"><div style="margin-bottom:10px"><div class="mono" style="font-size:24px;font-weight:700">{{ weekTotalKm }}</div><div class="text-muted" style="font-size:12px">本周计划 (km)</div></div><div><div style="font-size:24px;font-weight:700">{{ phaseLabel(activePlan.current_phase) }}</div><div class="text-muted" style="font-size:12px">当前阶段</div></div></div>
           </div>
         </div>
@@ -659,7 +662,6 @@ body {
         <div v-if="chatLoading" class="chat-msg"><div class="chat-avatar ai">AI</div><div class="chat-bubble" style="padding:14px 20px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 0.6s infinite;margin:0 3px"></span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 0.6s infinite 0.15s;margin:0 3px"></span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 0.6s infinite 0.3s;margin:0 3px"></span></div></div>
       </div>
       <div class="chat-input-bar"><input v-model="chatInput" placeholder="输入你的问题..." @keyup.enter="sendChat()"><button class="send-btn" @click="sendChat()" :disabled="chatLoading">发送</button></div>
-      @keyframes blink { 0%,100%{opacity:0.3;transform:translateY(0)} 50%{opacity:1;transform:translateY(-4px)} }
     </div>
 
     <!-- Profile Page -->
@@ -1115,27 +1117,37 @@ createApp({
 
     // --- Chat ---
     function sendChat(text) {
-      const msg = text || chatInput.value.trim()
+      // 兼容直接调用和事件调用
+      const msg = (typeof text === 'string' && text) ? text : chatInput.value.trim()
       if (!msg || chatLoading.value) return
       if (!currentChatId.value) newChat()
-      chatMessages.value.push({role:'user',content:msg.replace(/\n/g,'<br>')})
+      chatMessages.value.push({role:'user',content:msg.replace(/<[^>]+>/g,'')})
       chatInput.value = ''
       chatLoading.value = true
 
+      // 安全兜底：3秒后强制重置 loading
+      const safetyTimer = setTimeout(() => { chatLoading.value = false }, 5000)
+
       setTimeout(() => {
+        clearTimeout(safetyTimer)
         chatLoading.value = false
         const replies = {
-          '训练': '建议训练前做5-10分钟动态热身（高抬腿、开合跳等），训练后做静态拉伸。',
-          '节奏跑': '节奏跑是以乳酸阈配速进行的持续跑。间隙跑是短距离高强度 + 间歇休息。节奏跑提升耐力，间隙跑提升速度和VO2max。',
-          '膝盖': '膝盖疼痛可能由多种原因引起。建议：1)检查跑鞋是否合适 2)适当减少跑量 3)加强股四头肌和臀肌训练。如果持续疼痛请咨询医生。',
-          '准备': '比赛前一周应减量30-50%，保证充足睡眠，注意碳水摄入。比赛前2-3天做短距离轻松跑保持状态。',
-          '步频': '理想步频在170-180步/分钟。可以通过节拍器APP辅助训练，循序渐进提高。',
-          'LSD': 'LSD(Long Slow Distance)是长距离慢跑，配速比目标比赛配速慢30-60秒/km。目的是建立有氧基础和提升脂肪供能效率。'
+          '训练': '建议训练前做5-10分钟动态热身（高抬腿、开合跳等），训练后做静态拉伸。充分热身可以有效防止受伤，建议每个动作做30秒。',
+          '节奏跑': '节奏跑是以乳酸阈配速进行的持续跑。间歇跑是短距离高强度+间歇休息。节奏跑提升耐力，间歇跑提升速度和VO2max。一般节奏跑持续20-40分钟。',
+          '膝盖': '膝盖疼痛可能由多种原因引起。建议：1)检查跑鞋是否合适，跑鞋一般500-800公里需更换 2)适当减少跑量 3)加强股四头肌和臀肌训练 4)跑步时注意落地姿势。如果持续疼痛请咨询医生。',
+          '准备': '比赛前一周应减量30-50%，保证充足睡眠，注意碳水摄入（赛前3天碳水 loading）。比赛前2-3天做短距离轻松跑保持状态即可。',
+          '步频': '理想步频在170-180步/分钟。可以通过节拍器APP辅助训练，循序渐进提高。提高步频可以减少落地冲击力，降低受伤风险。',
+          'LSD': 'LSD(Long Slow Distance)是长距离慢跑，配速比目标比赛配速慢30-60秒/km。目的是建立有氧基础、提升脂肪供能效率和提高肌肉耐力。',
+          '热身': '建议训练前做5-10分钟动态热身：高抬腿、开合跳、踢臀跑、弓步转体等，每个动作30秒，让身体充分预热。',
+          '拉伸': '训练后做静态拉伸：大腿前侧、后侧、小腿、臀部，每个动作保持15-30秒，不要弹震。',
+          '饮食': '跑步前一小时可以吃香蕉或全麦面包。训练后30分钟内补充蛋白质+碳水（如牛奶+面包），有助于恢复。',
+          '呼吸': '尝试腹式呼吸，用鼻子吸气、嘴巴呼气。一般节奏是两步一吸两步一呼，或三步一吸两步一呼。',
+          '跑鞋': '建议选择专业跑鞋，根据你的足型和跑姿选择缓震型/稳定型。跑鞋寿命约500-800公里，记得及时更换。',
+          '受伤': '如果感到疼痛，请立即停止训练。遵循RICE原则：Rest休息、Ice冰敷、Compression加压、Elevation抬高。严重时请就医。'
         }
-        let reply = '好问题！作为你的AI教练，我建议根据你的具体情况进行调整。'
+        let reply = '好问题！作为你的AI教练，建议根据你的具体情况进行调整。你可以补充更多细节，比如目前的训练强度、配速等，我能给出更精准的建议。'
         Object.entries(replies).forEach(([k,v]) => { if (msg.includes(k)) reply = v })
         chatMessages.value.push({role:'assistant',content:reply})
-        // Update session
         if (chatSessions.value.length > 0) {
           chatSessions.value[0].preview = reply.slice(0,30)
         }
@@ -1195,8 +1207,8 @@ createApp({
         const canvas = document.getElementById('ringCanvas')
         if (!canvas) return
         const ctx = canvas.getContext('2d')
-        const cx=140, cy=140, r=120, lw=8
-        ctx.clearRect(0,0,280,280)
+        const cx=70, cy=70, r=60, lw=6
+        ctx.clearRect(0,0,140,140)
         ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=lw;ctx.stroke()
         const pct = weeklyPct.value
         const end = (pct/100)*Math.PI*2 - Math.PI/2
