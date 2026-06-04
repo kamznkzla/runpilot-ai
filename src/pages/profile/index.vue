@@ -73,16 +73,6 @@
           </view>
           <text class="menu-arrow">→</text>
         </view>
-        <view class="menu-item" @tap="goShareCard">
-          <text class="menu-icon">📤</text>
-          <text class="menu-label">训练卡片</text>
-          <text class="menu-arrow">→</text>
-        </view>
-        <view class="menu-item" @tap="goWeeklyRecap">
-          <text class="menu-icon">📰</text>
-          <text class="menu-label">周报 / 月报</text>
-          <text class="menu-arrow">→</text>
-        </view>
       </view>
 
       <view class="menu-section">
@@ -143,8 +133,6 @@ function goLogs() { uni.navigateTo({ url: '/subpkg-training/pages/workout-log' }
 function goAnalysis() { uni.navigateTo({ url: '/subpkg-training/pages/trend-analysis' }) }
 function goAchievements() { uni.navigateTo({ url: '/pages/profile/achievements' }) }
 function goSettings() { uni.navigateTo({ url: '/pages/profile/settings' }) }
-function goShareCard() { uni.navigateTo({ url: '/subpkg-sharing/pages/training-card' }) }
-function goWeeklyRecap() { uni.navigateTo({ url: '/subpkg-sharing/pages/weekly-recap' }) }
 
 onMounted(async () => {
   await Promise.all([

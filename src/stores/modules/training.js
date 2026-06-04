@@ -1,12 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { callCloudFunction, dbFind } from '@/common/api/cloud'
+import { callCloudFunction, dbAdd, dbFind } from '@/common/api/cloud'
 
 export const useTrainingStore = defineStore('training', () => {
   // --- State ---
   const logs = ref([])
   const stats = ref(null)
-  const pbs = ref([])
   const badges = ref([])
   const recentBadges = ref([])
 
@@ -38,6 +37,36 @@ export const useTrainingStore = defineStore('training', () => {
     return Math.round(avg)
   })
 
+  const pbs = computed(() => {
+    const best = {}
+    const targets = [
+      { distance: '1k', km: 1 },
+      { distance: '5k', km: 5 },
+      { distance: '10k', km: 10 },
+      { distance: 'half_marathon', km: 21.0975 },
+      { distance: 'marathon', km: 42.195 }
+    ]
+    logs.value.forEach(log => {
+      if (log.completion_status !== 'done') return
+      const km = Number(log.actual_distance_km) || 0
+      const duration = Number(log.actual_duration_min) || 0
+      if (!km || !duration) return
+      targets.forEach(target => {
+        if (Math.abs(km - target.km) > target.km * 0.03) return
+        const seconds = Math.round(duration * 60)
+        if (!best[target.distance] || seconds < best[target.distance].seconds) {
+          best[target.distance] = {
+            distance: target.distance,
+            time: formatDuration(seconds),
+            workout_date: log.workout_date,
+            seconds
+          }
+        }
+      })
+    })
+    return Object.values(best)
+  })
+
   const pbMap = computed(() => {
     const map = {}
     pbs.value.forEach(pb => { map[pb.distance] = pb })
@@ -62,7 +91,6 @@ export const useTrainingStore = defineStore('training', () => {
     try {
       const res = await callCloudFunction('stats-analysis', { period })
       stats.value = res.stats || null
-      if (res.pbs) pbs.value = res.pbs
     } catch (err) {
       console.error('fetchStats error:', err)
     }
@@ -84,6 +112,19 @@ export const useTrainingStore = defineStore('training', () => {
   async function submitFeedback(feedbackData) {
     try {
       const res = await callCloudFunction('training-feedback', feedbackData)
+      if (res.__mock) {
+        const distance = Number(feedbackData.actual_distance_km) || 0
+        const duration = Number(feedbackData.actual_duration_min) || 0
+        await dbAdd('training_logs', {
+          ...feedbackData,
+          actual_distance_km: distance || undefined,
+          actual_duration_min: duration || undefined,
+          actual_pace_sec_per_km: distance && duration ? Math.round(duration * 60 / distance) : undefined,
+          completion_status: feedbackData.completion_status || 'done',
+          workout_date: feedbackData.workout_date || new Date().toISOString().split('T')[0],
+          source: feedbackData.manual ? 'manual' : 'local'
+        })
+      }
       if (res.earnedBadges?.length > 0) {
         recentBadges.value = res.earnedBadges
         badges.value.unshift(...res.earnedBadges.map(b => ({
@@ -102,6 +143,14 @@ export const useTrainingStore = defineStore('training', () => {
 
   function clearRecentBadges() {
     recentBadges.value = []
+  }
+
+  function formatDuration(seconds) {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = seconds % 60
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    return `${m}:${String(s).padStart(2, '0')}`
   }
 
   return {

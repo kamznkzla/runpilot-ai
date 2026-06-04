@@ -105,6 +105,7 @@ const showConfetti = ref(false)
 
 const query = uni.createSelectorQuery()
 const status = ref('done')
+const manual = ref(false)
 
 const difficultyLevels = [
   { value: 1, label: '太轻松' },
@@ -151,7 +152,8 @@ async function handleSubmit() {
       difficulty_rating: form.difficulty,
       feeling_note: form.note,
       skip_reason: status.value === 'skipped' ? form.skipReason : undefined,
-      workout_date: new Date().toISOString().split('T')[0]
+      workout_date: new Date().toISOString().split('T')[0],
+      manual: manual.value
     })
 
     if (status.value === 'done') {
@@ -176,6 +178,7 @@ onMounted(() => {
   if (page?.options?.status) {
     status.value = page.options.status
   }
+  manual.value = page?.options?.manual === '1'
 })
 </script>
 
