@@ -6,7 +6,7 @@
     </view>
 
     <view class="form-container">
-      <text class="section-desc">授权同步你的运动数据，让训练计划更精准</text>
+      <text class="section-desc">选择你常用的数据平台，稍后可跳转授权或查看接入说明</text>
 
       <view class="platform-list">
         <view
@@ -22,16 +22,19 @@
               <text class="platform-desc">{{ p.desc }}</text>
             </view>
           </view>
-          <switch
-            :checked="form.devices.includes(p.value)"
-            :color="'#FF6B35'"
-            @change="(e) => toggleDevice(p.value, e.detail.value)"
-          />
+          <view class="platform-actions">
+            <button class="auth-btn" @tap="authorizePlatform(p)">授权</button>
+            <switch
+              :checked="form.devices.includes(p.value)"
+              :color="'#FF6B35'"
+              @change="(e) => toggleDevice(p.value, e.detail.value)"
+            />
+          </view>
         </view>
       </view>
 
       <view class="skip-hint">
-        <text class="hint-text">可稍后在"个人中心 → 设置"中配置</text>
+        <text class="hint-text">当前为平台偏好选择；真实同步需要完成对应平台授权</text>
       </view>
     </view>
 
@@ -55,11 +58,9 @@ const currentStep = 5
 const submitting = ref(false)
 
 const platforms = [
-  { value: 'garmin', label: 'Garmin Connect', desc: 'Garmin 手表数据同步', emoji: '⌚' },
-  { value: 'apple_health', label: 'Apple Health', desc: 'iPhone/Apple Watch 健康数据', emoji: '🍎' },
-  { value: 'strava', label: 'Strava', desc: '全球跑者社区平台', emoji: '🏃' },
-  { value: 'coros', label: 'Coros', desc: '高驰运动手表', emoji: '⛰' },
-  { value: 'keep', label: 'Keep', desc: '国内健身运动平台', emoji: '💪' }
+  { value: 'apple_health', label: 'Apple Health', desc: 'iPhone/Apple Watch 健康数据；网页端需通过 iOS 授权或导入', emoji: '🍎', authUrl: 'https://support.apple.com/guide/iphone/view-health-and-fitness-information-iphe3d379c32/ios' },
+  { value: 'garmin', label: 'Garmin Connect', desc: 'Garmin 手表训练数据；需要 Connect 账号授权', emoji: '⌚', authUrl: 'https://connect.garmin.com/' },
+  { value: 'coros', label: 'Coros 高驰', desc: '高驰运动手表数据；需要在 COROS 平台授权或导出', emoji: '⛰', authUrl: 'https://us.coros.com/' }
 ]
 
 const form = reactive({
@@ -72,6 +73,14 @@ function toggleDevice(platform, checked) {
   } else {
     const idx = form.devices.indexOf(platform)
     if (idx > -1) form.devices.splice(idx, 1)
+  }
+}
+
+function authorizePlatform(platform) {
+  if (!form.devices.includes(platform.value)) form.devices.push(platform.value)
+  if (platform.authUrl) {
+    // H5 uses a browser tab; mini-program builds can replace this with an in-app webview.
+    if (typeof window !== 'undefined') window.open(platform.authUrl, '_blank', 'noopener')
   }
 }
 
@@ -108,6 +117,12 @@ async function handleComplete() {
   &.connected { border-color: rgba(255,107,53,0.3); }
 }
 .platform-info { display: flex; align-items: center; gap: $spacing-md; }
+.platform-actions { display: flex; align-items: center; gap: $spacing-sm; }
+.auth-btn {
+  width: auto; min-width: 104rpx; padding: 8rpx 18rpx; border-radius: $radius-round;
+  border: 2rpx solid rgba(255,107,53,0.45); background: rgba(255,107,53,0.08);
+  color: $color-accent-light; font-size: $font-size-xs; line-height: 1.4;
+}
 .platform-emoji { font-size: 40rpx; }
 .platform-meta { display: flex; flex-direction: column; }
 .platform-name { font-size: $font-size-md; color: $color-text-primary; font-weight: 500; }

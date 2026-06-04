@@ -336,6 +336,33 @@ body {
 .no-plan .etitle { font-size: 20px; font-weight: 700; margin-top: 10px; }
 .no-plan .edesc { font-size: 13px; color: var(--text-muted); margin: 8px 0 20px; }
 
+/* Plan goals */
+.plan-goal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+.plan-goal-card {
+  min-height: 178px; border-radius: var(--radius-sm); overflow: hidden; position: relative;
+  background: var(--bg-card); border: 2px solid transparent; cursor: pointer;
+}
+.plan-goal-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(255,107,53,0.25), 0 10px 24px rgba(0,0,0,0.25); }
+.plan-goal-media {
+  height: 92px; background-size: cover; background-position: center;
+  display: flex; align-items: center; justify-content: center; position: relative;
+}
+.plan-goal-media::after {
+  content:''; position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(15,15,26,0.05), rgba(15,15,26,0.8));
+}
+.plan-goal-icon { position: relative; z-index: 1; font-size: 42px; font-weight: 800; letter-spacing: 0; color: #fff; }
+.plan-goal-body { padding: 10px; }
+.plan-goal-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.plan-goal-sub { margin-top: 3px; font-size: 11px; color: var(--accent-light); }
+.plan-goal-desc { margin-top: 6px; font-size: 11px; color: var(--text-muted); line-height: 1.45; }
+.plan-goal-card.beginner .plan-goal-media { background: radial-gradient(circle at 30% 20%, #4CAF50, transparent 34%), linear-gradient(135deg,#1E1E35,#2A6F55); }
+.plan-goal-card.tenk .plan-goal-media { background-image: linear-gradient(180deg,rgba(15,15,26,0.05),rgba(15,15,26,0.3)), url('https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Jakob_Ingebrigtsen.jpg/640px-Jakob_Ingebrigtsen.jpg'); }
+.plan-goal-card.half .plan-goal-media { background: linear-gradient(135deg,#004E98 0%,#004E98 44%,#fff 44%,#fff 50%,#00843D 50%,#00843D 100%); }
+.plan-goal-card.full .plan-goal-media { background: linear-gradient(135deg,#13315C,#0B6E4F 55%,#F2C94C); }
+.plan-goal-card.full .plan-goal-icon { font-size: 30px; }
+@media (max-width: 380px) { .plan-goal-grid { grid-template-columns: 1fr; } }
+
 /* Chart area */
 .chart-area { padding: 10px 0; }
 .chart-area canvas { width: 100%; }
@@ -351,6 +378,11 @@ body {
   background: var(--bg-card); border-radius: var(--radius-sm); margin-bottom: 8px; border: 1px solid transparent;
 }
 .platform-item.connected { border-color: rgba(255,107,53,0.3); }
+.platform-actions { display: flex; align-items: center; gap: 8px; }
+.platform-auth {
+  width: auto; padding: 7px 12px; border-radius: var(--radius-round); border: 1px solid rgba(255,107,53,0.45);
+  background: rgba(255,107,53,0.08); color: var(--accent-light); font-size: 12px; font-weight: 600; cursor: pointer;
+}
 
 /* Settings groups */
 .settings-title { font-size: 13px; color: var(--text-muted); padding: 0 6px 8px 6px; }
@@ -496,12 +528,15 @@ body {
   <!-- Onboarding Step 5: Devices -->
   <div v-if="page === 'onboarding5'" class="page-content">
     <div class="steps"><div v-for="i in 5" class="dot" :class="{active:i<=5}"></div></div>
-    <p class="text-muted text-center mb">授权同步运动数据，让训练更精准</p>
-    <div v-for="p in platforms" class="platform-item" :class="{connected:form.devices.includes(p.v)}">
+    <p class="text-muted text-center mb">选择你常用的数据平台，稍后可跳转授权或查看接入说明</p>
+    <div v-for="p in platforms" class="platform-item" :class="{connected:form.devices.includes(p.v)}" @click="toggleDevice(p.v)">
       <div style="display:flex;align-items:center;gap:12px"><span style="font-size:24px">{{ p.e }}</span><div><div style="font-weight:500">{{ p.l }}</div><div style="font-size:11px;color:var(--text-muted)">{{ p.c }}</div></div></div>
-      <div class="toggle" :class="{on:form.devices.includes(p.v)}" @click="toggleDevice(p.v)"></div>
+      <div class="platform-actions">
+        <button class="platform-auth" @click.stop="authorizeDevice(p)">授权</button>
+        <div class="toggle" :class="{on:form.devices.includes(p.v)}"></div>
+      </div>
     </div>
-    <p class="text-center text-muted" style="margin:20px 0;font-size:12px">可稍后在"设置"中配置</p>
+    <p class="text-center text-muted" style="margin:20px 0;font-size:12px">当前为平台偏好选择；真实同步需要完成对应平台授权</p>
     <div style="display:flex;gap:10px">
       <button class="btn btn-outline" style="flex:1" @click="page='onboarding4'">上一步</button>
       <button class="btn btn-primary" style="flex:2" @click="completeOnboarding">完成设置 🎉</button>
@@ -597,8 +632,26 @@ body {
     <div class="page-content" v-if="page==='tab_plan'">
       <div v-if="!hasActivePlan && !generatingPlan">
         <div class="no-plan"><div class="eicon">🏃‍♂️</div><div class="etitle">还没有训练计划</div><div class="edesc">让 AI 为你生成专属的科学训练计划</div></div>
+        <div class="plan-goal-grid">
+          <div class="plan-goal-card beginner" :class="{active:selectedPlanGoal==='beginner'}" @click="selectPlanGoal('beginner')">
+            <div class="plan-goal-media"><div class="plan-goal-icon">RUN</div></div>
+            <div class="plan-goal-body"><div class="plan-goal-title">新手完赛</div><div class="plan-goal-sub">初心者基础模型</div><div class="plan-goal-desc">从跑走结合和低心率有氧开始，先建立习惯和耐受。</div></div>
+          </div>
+          <div class="plan-goal-card tenk" :class="{active:selectedPlanGoal==='10k'}" @click="selectPlanGoal('10k')">
+            <div class="plan-goal-media"><div class="plan-goal-icon">10K</div></div>
+            <div class="plan-goal-body"><div class="plan-goal-title">10km 提速</div><div class="plan-goal-sub">雅各布阈值降载</div><div class="plan-goal-desc">受控阈值、巡航间歇和轻松跑，不照搬双阈值。</div></div>
+          </div>
+          <div class="plan-goal-card half" :class="{active:selectedPlanGoal==='half_marathon'}" @click="selectPlanGoal('half_marathon')">
+            <div class="plan-goal-media"><div class="plan-goal-icon">AGU</div></div>
+            <div class="plan-goal-body"><div class="plan-goal-title">21km 半马</div><div class="plan-goal-sub">青学强耐力风格</div><div class="plan-goal-desc">偏有氧容量、节奏耐力和后程稳定，适合进阶。</div></div>
+          </div>
+          <div class="plan-goal-card full" :class="{active:selectedPlanGoal==='marathon'}" @click="selectPlanGoal('marathon')">
+            <div class="plan-goal-media"><div class="plan-goal-icon">BOSTON</div></div>
+            <div class="plan-goal-body"><div class="plan-goal-title">42km 全马</div><div class="plan-goal-sub">专业马拉松降载</div><div class="plan-goal-desc">长距离、马拉松配速和恢复周优先，控制速度课。</div></div>
+          </div>
+        </div>
         <div style="margin-bottom:18px"><div class="text-muted" style="margin-bottom:8px">计划时长</div><div class="config-chips"><div v-for="d in [4,8,12]" class="config-chip" :class="{active:planDuration===d}" @click="planDuration=d"><div class="cv">{{ d }} 周</div><div class="cd">{{ d===4?'短期突击':d===8?'标准计划':'完整周期(推荐)' }}</div></div></div></div>
-        <button class="btn btn-primary" :disabled="!form.goalDistance" @click="generatePlan">{{ generatingPlan?'AI 正在生成...':'生成训练计划' }}</button>
+        <button class="btn btn-primary" :disabled="!selectedPlanGoal && !form.goalDistance" @click="generatePlan">{{ generatingPlan?'AI 正在生成...':'生成训练计划' }}</button>
         <p v-if="generatingPlan" class="text-muted text-center" style="margin-top:10px;font-size:12px">AI 正在根据你的数据生成个性化计划，请稍候...</p>
       </div>
 
@@ -763,6 +816,7 @@ createApp({
     // --- Training Plan ---
     const activePlan = ref(null)
     const planDuration = ref(12)
+    const selectedPlanGoal = ref('')
     const selectedDay = ref(null)
     const fbStatus = ref('done')
     const fbForm = reactive({ distance: '', duration: '', rpe: 5 })
@@ -894,11 +948,9 @@ createApp({
       { v:'marathon', l:'全程马拉松', c:'42.195km' }
     ]
     const platforms = [
-      { v:'garmin', l:'Garmin Connect', c:'Garmin手表数据', e:'⌚' },
-      { v:'apple_health', l:'Apple Health', c:'iPhone/Apple Watch', e:'🍎' },
-      { v:'strava', l:'Strava', c:'全球跑者社区', e:'🏃' },
-      { v:'coros', l:'Coros', c:'高驰运动手表', e:'⛰' },
-      { v:'keep', l:'Keep', c:'国内健身平台', e:'💪' }
+      { v:'apple_health', l:'Apple Health', c:'iPhone/Apple Watch 健康数据；网页端需通过 iOS 授权或导入', e:'🍎', authUrl:'https://support.apple.com/guide/iphone/view-health-and-fitness-information-iphe3d379c32/ios' },
+      { v:'garmin', l:'Garmin Connect', c:'Garmin 手表训练数据；需要 Connect 账号授权', e:'⌚', authUrl:'https://connect.garmin.com/' },
+      { v:'coros', l:'Coros 高驰', c:'高驰运动手表数据；需要在 COROS 平台授权或导出', e:'⛰', authUrl:'https://us.coros.com/' }
     ]
 
     const workoutTypes = {
@@ -1128,6 +1180,10 @@ createApp({
       if (idx > -1) form.devices.splice(idx, 1)
       else form.devices.push(platform)
     }
+    function authorizeDevice(platform) {
+      if (!form.devices.includes(platform.v)) form.devices.push(platform.v)
+      if (platform.authUrl) window.open(platform.authUrl, '_blank', 'noopener')
+    }
 
     // --- Navigation ---
     function goBack() {
@@ -1156,6 +1212,10 @@ createApp({
 
     // --- Plan Generation ---
     function generatePlan() {
+      if (selectedPlanGoal.value) {
+        form.goalDistance = selectedPlanGoal.value === 'beginner' ? '5k' : selectedPlanGoal.value
+        if (selectedPlanGoal.value === 'beginner') form.experience = 'beginner'
+      }
       generatingPlan.value = true
       setTimeout(() => {
         generateSamplePlan()
@@ -1164,36 +1224,99 @@ createApp({
       }, 2000)
     }
 
+    function selectPlanGoal(goal) {
+      selectedPlanGoal.value = goal
+      form.goalDistance = goal === 'beginner' ? '5k' : goal
+      if (goal === 'beginner') {
+        form.experience = 'beginner'
+        form.weeklyDays = '2-3'
+      }
+    }
+
     function generateSamplePlan() {
-      const weeks = []
+      const selectedGoal = selectedPlanGoal.value || form.goalDistance || '10k'
+      const goal = selectedGoal === 'beginner' ? '5k' : selectedGoal
+      const weeksCount = planDuration.value || 12
+      const raceKm = { '5k':5, '10k':10, half_marathon:21.0975, marathon:42.195 }[goal] || 10
+      const exp = selectedGoal === 'beginner' ? 'beginner' : (form.experience || 'beginner')
+      const runDays = selectedGoal === 'beginner' ? 3 : (form.weeklyDays === '2-3' ? 3 : form.weeklyDays === '6-7' ? 5 : 4)
+      const racePace = form.goalTimeSec > 0 ? Math.round(form.goalTimeSec / raceKm) : ({ '5k':330, '10k':360, half_marathon:390, marathon:420 }[goal] || 360)
+      const profileMap = {
+        '5k': { title:selectedGoal === 'beginner' ? '新手完赛基础模型' : '5K速度入门模型', source:selectedGoal === 'beginner' ? '初心者低强度习惯建立' : '速度+有氧基础', baseKm:{beginner:selectedGoal === 'beginner' ? 10 : 14,intermediate:24,advanced:36}, peakLong:selectedGoal === 'beginner' ? 7 : 10, focus:selectedGoal === 'beginner' ? '跑走结合、低心率和规律性优先，先不追速度。' : '短间歇和轻松跑并重，不堆无意义长距离。' },
+        '10k': { title:'10K挪威阈值降载模型', source:'参考雅各布体系的受控阈值', baseKm:{beginner:18,intermediate:32,advanced:48}, peakLong:15, focus:'借鉴挪威法的阈值控制，但普通跑者只做单阈值，不做双阈值。' },
+        half_marathon: { title:'半马强耐力模型', source:'参考青学/箱根式耐力与节奏能力', baseKm:{beginner:24,intermediate:42,advanced:62}, peakLong:23, focus:'以有氧容量、巡航间歇和后程稳定性为核心。' },
+        marathon: { title:'全马专业马拉松降载模型', source:'参考专业马拉松的长距离+马配结构', baseKm:{beginner:30,intermediate:52,advanced:72}, peakLong:32, focus:'长距离和马拉松配速优先，速度课减少，避免把全马练成10K。' }
+      }
+      const model = profileMap[goal] || profileMap['10k']
+      const baseKm = model.baseKm[exp] || model.baseKm.beginner
+      const dayFactor = runDays === 3 ? 0.78 : runDays === 5 ? 1.12 : 1
       const phases = [
-        {name:'base',start_week:1,end_week:3,focus:'aerobic'},
-        {name:'build',start_week:4,end_week:7,focus:'threshold'},
-        {name:'race',start_week:8,end_week:10,focus:'specific'},
-        {name:'taper',start_week:11,end_week:12,focus:'peak'}
+        {name:'base',start_week:1,end_week:Math.max(1,Math.ceil(weeksCount*0.35)),focus:'aerobic_base'},
+        {name:'build',start_week:Math.ceil(weeksCount*0.35)+1,end_week:Math.max(2,Math.ceil(weeksCount*0.7)),focus:'threshold_strength'},
+        {name:'race',start_week:Math.ceil(weeksCount*0.7)+1,end_week:Math.max(3,weeksCount-1),focus:'race_specific'},
+        {name:'taper',start_week:weeksCount,end_week:weeksCount,focus:'freshness'}
       ]
       const startDate = new Date()
-      startDate.setDate(startDate.getDate() - startDate.getDay() + 1) // next Monday
+      const dow = startDate.getDay()
+      startDate.setDate(startDate.getDate() + ((8 - dow) % 7 || 7))
 
-      for (let w = 1; w <= 12; w++) {
-        const phase = phases.find(p => w >= p.start_week && w <= p.end_week)
-        const days = [
-          {day:'monday',type:'rest',description:'休息日',coach_note:'周一充分休息，为本周训练储备能量'},
-          {day:'tuesday',type:w<=3?'easy':w<=7?'tempo':'interval',distance_km:w<=3?6:w<=7?8:10,target_pace:w<=3?"6'10\"":w<=7?"5'30\"":"5'00\"",duration_min:w<=3?37:w<=7?44:50,rpe_target:w<=3?4:w<=7?6:8,description:w<=3?'轻松有氧跑，保持对话配速':w<=7?'节奏跑，保持稳定配速':'间歇跑，提升最大摄氧量',coach_note:w<=3?'关注跑姿流畅性':w<=7?'保持均匀配速':'每组尽力完成，组间充分恢复'},
-          {day:'wednesday',type:'easy',distance_km:7,target_pace:"6'10\"",duration_min:43,rpe_target:4,description:'恢复性轻松跑',coach_note:'慢一点，专注于恢复'},
-          {day:'thursday',type:w<=3?'easy':w<=7?'interval':'tempo',distance_km:w<=3?8:w<=7?10:9,target_pace:w<=3?"6'00\"":w<=7?"5'15\"":"5'20\"",duration_min:w<=3?48:w<=7?53:48,rpe_target:w<=3?5:w<=7?8:7,description:w<=3?'稳定有氧跑':w<=7?'间歇训练':'节奏跑',coach_note:w<=3?'保持稳定':w<=7?'注意间歇质量':'模拟比赛配速'},
-          {day:'friday',type:'rest',description:'休息日',coach_note:'为周末长距离做好准备'},
-          {day:'saturday',type:'long',distance_km:w<=3?12:w<=7?16:Math.min(22,10+w*1.5),target_pace:"6'20\"",duration_min:w*6+30,rpe_target:6,description:'LSD长距离慢跑',coach_note:'保持轻松配速，重点是时间和距离'},
-          {day:'sunday',type:'recovery',distance_km:5,target_pace:"6'30\"",duration_min:33,rpe_target:3,description:'恢复跑',coach_note:'非常轻松，帮助身体恢复'}
-        ]
-        weeks.push({week_number:w,phase:phase.name,total_km:days.reduce((s,d)=>s+(d.distance_km||0),0),days})
+      const pace = (delta) => formatPace(Math.max(180, racePace + delta))
+      const roundKm = (v) => Math.max(0, Math.round(v * 2) / 2)
+      const makeWorkout = (day,type,km,delta,rpe,description,note) => ({
+        day, type, distance_km: roundKm(km), target_pace: `${pace(delta)}/km`,
+        duration_min: Math.round(roundKm(km) * (racePace + delta) / 60),
+        rpe_target: rpe, description, coach_note: note
+      })
+      const rest = (day, note='休息或20-30分钟灵活性训练') => ({day,type:'rest',description:'休息日',coach_note:note})
+      const getPhase = (w) => phases.find(p => w >= p.start_week && w <= p.end_week) || phases[0]
+
+      const weeks = []
+      for (let w = 1; w <= weeksCount; w++) {
+        const phase = getPhase(w)
+        const progress = weeksCount === 1 ? 1 : (w - 1) / (weeksCount - 1)
+        const recoveryWeek = w % 4 === 0 && w < weeksCount
+        const taperWeek = phase.name === 'taper'
+        let weekKm = baseKm * dayFactor * (0.82 + progress * 0.38)
+        if (recoveryWeek) weekKm *= 0.72
+        if (taperWeek) weekKm *= goal === 'marathon' ? 0.55 : 0.62
+        const longShare = goal === 'marathon' ? 0.34 : goal === 'half_marathon' ? 0.31 : 0.27
+        const longKm = roundKm(Math.min(model.peakLong, Math.max(raceKm * 0.9, weekKm * longShare)))
+        const qualityAllowed = !recoveryWeek && !taperWeek
+        const days = [rest('monday','周一完整恢复，把睡眠和小腿放松做好。')]
+
+        if (goal === '5k') {
+          days.push(qualityAllowed ? makeWorkout('tuesday','interval',weekKm*0.18,-25,7,'短间歇速度课：400-800m重复，组间充分慢跑恢复。','最后一组不应明显掉速，速度课不是冲刺课。') : makeWorkout('tuesday','easy',weekKm*0.18,75,4,'轻松有氧跑，恢复周降低刺激。','能完整聊天就是正确强度。'))
+        } else if (goal === '10k') {
+          days.push(qualityAllowed ? makeWorkout('tuesday','tempo',weekKm*0.2,20,7,'受控阈值跑：巡航间歇或2-3段节奏跑。','参考雅各布阈值思想，但只做单阈值，宁慢勿爆。') : makeWorkout('tuesday','easy',weekKm*0.18,80,4,'轻松有氧跑。','恢复周不要追配速。'))
+        } else if (goal === 'half_marathon') {
+          days.push(qualityAllowed ? makeWorkout('tuesday','tempo',weekKm*0.2,25,7,'巡航间歇：3-5组阈值段，培养半马强耐力。','参考青学/箱根式耐力，但用大众训练量降载。') : makeWorkout('tuesday','easy',weekKm*0.18,80,4,'轻松跑维持跑感。','保持有氧，不制造疲劳。'))
+        } else {
+          days.push(qualityAllowed ? makeWorkout('tuesday','tempo',weekKm*0.18,45,6,'马拉松配速或稳态跑，练习可持续节奏。','全马不需要频繁冲速度，先把马配跑稳。') : makeWorkout('tuesday','easy',weekKm*0.16,90,4,'轻松跑。','恢复周让身体吸收训练。'))
+        }
+
+        days.push(runDays >= 4 ? makeWorkout('wednesday','easy',weekKm*0.18,85,4,'有氧基础跑。','心率优先，热天自动放慢。') : rest('wednesday','三跑制用户保留恢复日，降低受伤风险。'))
+
+        const secondQuality = qualityAllowed && runDays >= 4 && phase.name !== 'base'
+        if (secondQuality && goal === '5k') days.push(makeWorkout('thursday','tempo',weekKm*0.18,35,6,'短节奏跑+加速跑，连接速度和有氧。','不要和周二一样跑爆，保持轻快。'))
+        else if (secondQuality && goal === '10k') days.push(makeWorkout('thursday','interval',weekKm*0.18,-5,7,'10K专项间歇：1K重复或坡度力量跑。','强度只占本周少量，其他跑都要轻松。'))
+        else if (secondQuality && goal === 'half_marathon') days.push(makeWorkout('thursday','tempo',weekKm*0.18,35,6,'中等节奏跑，练后程稳定。','强耐力比绝对速度更重要。'))
+        else if (secondQuality && goal === 'marathon') days.push(makeWorkout('thursday','easy',weekKm*0.18,75,4,'中长有氧跑。','全马训练的关键是稳定累积，不是每周两堂硬课。'))
+        else days.push(makeWorkout('thursday','easy',weekKm*0.18,85,4,'轻松跑或休息替代。','如果腿沉，直接改休息。'))
+
+        days.push(rest('friday','为周末长距离储备状态。'))
+        const longDelta = goal === 'marathon' && phase.name === 'race' ? 55 : goal === 'half_marathon' && phase.name === 'race' ? 65 : 95
+        days.push(makeWorkout('saturday','long',longKm,longDelta,5,'LSD长距离，后期可加入少量目标配速段。',model.focus))
+        days.push(runDays >= 5 ? makeWorkout('sunday','recovery',Math.max(4,weekKm*0.11),110,3,'恢复跑。','非常轻松，目的是促进恢复，不是刷跑量。') : rest('sunday','如果周六长距离后疲劳，周日完全休息。'))
+
+        const totalKm = roundKm(days.reduce((s,d)=>s+(d.distance_km||0),0))
+        weeks.push({week_number:w,phase:phase.name,total_km:totalKm,model_source:model.source,recovery_week:recoveryWeek,days})
       }
 
       activePlan.value = {
-        plan_name: `${goalLabel(form.goalDistance||'5k')}${Math.ceil((form.goalTimeSec||1800)/60)||'完赛'}训练计划`,
-        goal_distance: form.goalDistance||'5k', goal_time_sec: form.goalTimeSec||1800,
-        total_weeks: 12, current_phase: 'base', start_date: startDate.toISOString().split('T')[0],
-        phases, weeks, status: 'active'
+        plan_name: `${goalLabel(goal)} · ${model.title}`,
+        goal_distance: goal, goal_time_sec: form.goalTimeSec||0,
+        total_weeks: weeksCount, current_phase: 'base', start_date: startDate.toISOString().split('T')[0],
+        phases, weeks, status: 'active', model_source: model.source
       }
     }
 
@@ -1501,6 +1624,10 @@ createApp({
     })
 
     // Save/load state
+    if (new URLSearchParams(location.search).get('reset') === '1') {
+      localStorage.removeItem('runpilot_state')
+      history.replaceState(null, '', location.pathname)
+    }
     const saved = localStorage.getItem('runpilot_state')
     if (saved) {
       try {
@@ -1532,7 +1659,7 @@ createApp({
 
     return {
       page, showSessions, showConfetti, generatingPlan, chatLoading, chatInput,
-      currentChatId, form, settings, activePlan, planDuration, selectedDay,
+      currentChatId, form, settings, activePlan, planDuration, selectedPlanGoal, selectedDay,
       fbStatus, fbForm, calYear, calMonth, calSelected, chatMessages, chatSessions,
       trainingLogs, completedWorkouts, totalKmAll, confettiPieces,
       distances, goalDistances, platforms, quickQuestions, quickLinks, pbs,
@@ -1544,8 +1671,8 @@ createApp({
       currentNavTitle, calGrid, calLegend,
       goalLabel, workoutColor, workoutEmoji, workoutLabel, phaseLabel, phaseColor,
       rpeColor, dayLabel,
-      calcPace, parseTime, formatPace, parseCustomTime, toggleDevice,
-      goBack, completeOnboarding, generatePlan, adjustPlan,
+      calcPace, parseTime, formatPace, parseCustomTime, toggleDevice, authorizeDevice,
+      goBack, completeOnboarding, generatePlan, selectPlanGoal, adjustPlan,
       completeWorkout, submitFeedback,
       sendChat, newChat, loadChat,
       saveProfile, resetApp,
