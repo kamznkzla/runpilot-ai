@@ -1218,7 +1218,21 @@ createApp({
       return pool[pickDailyIndex(seed, pool.length)] || quotePools.general[0]
     })
 
-    const weeklyDone = ref(0)
+    const weeklyDone = computed(() => {
+      if (!activePlan.value) return 0
+      const start = new Date(activePlan.value.start_date)
+      if (isNaN(start)) return 0
+      const weekStart = new Date(start)
+      weekStart.setDate(start.getDate() + (currentWeek.value - 1) * 7)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 7)
+      const completed = trainingLogs.value.filter(l => {
+        if (l.status !== 'done' || l.source === '手动录入') return false
+        const d = new Date(l.date)
+        return !isNaN(d) && d >= weekStart && d < weekEnd
+      }).length
+      return Math.min(completed, weeklyTotal.value)
+    })
     const weeklyTotal = computed(() => {
       if (!activePlan.value) return 0
       const week = activePlan.value.weeks[currentWeek.value - 1]
@@ -1487,7 +1501,6 @@ createApp({
     function resetPlanSelection() {
       activePlan.value = null
       selectedPlanGoal.value = ''
-      weeklyDone.value = 0
       page.value = 'tab_plan'
       localStorage.removeItem('runpilot_state')
     }
@@ -1604,9 +1617,6 @@ createApp({
         status: fbStatus.value, distance: dist, duration_min: parseFloat(fbForm.duration) || 0, pace: pace,
         rating: fbForm.rpe
       })
-      if (fbStatus.value === 'done') {
-        weeklyDone.value++
-      }
       recalcTrainingStats()
       if (fbStatus.value === 'done') showConfettiFn('🎉','训练完成！','继续加油')
       page.value = 'tab_dashboard'
@@ -1946,7 +1956,6 @@ createApp({
           Object.assign(form, state.form || {})
           if (state.logs) trainingLogs.value = state.logs
           recalcTrainingStats()
-          weeklyDone.value = state.weeklyDone || 0
           if (state.appVersion === APP_VERSION && state.activePlan) {
             activePlan.value = state.activePlan
             page.value = 'tab_dashboard'
@@ -1966,7 +1975,6 @@ createApp({
         form: JSON.parse(JSON.stringify(form)),
         activePlan: activePlan.value,
         logs: trainingLogs.value,
-        weeklyDone: weeklyDone.value
       }))
     }, 3000)
 
