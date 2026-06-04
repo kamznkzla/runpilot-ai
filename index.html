@@ -659,6 +659,7 @@ body {
         <div style="background:linear-gradient(135deg,var(--bg-card),var(--bg-card-hover));border-radius:var(--radius);padding:18px;margin-bottom:14px">
           <div class="flex-between"><span style="font-size:20px;font-weight:700">{{ activePlan.plan_name }}</span><span class="badge" :style="{background:phaseColor(activePlan.current_phase)}">{{ phaseLabel(activePlan.current_phase) }}</span></div>
           <div style="display:flex;gap:18px;font-size:13px;color:var(--text-muted);margin-top:8px"><span>第 {{ currentWeek }}/{{ activePlan.total_weeks }} 周</span><span>{{ weeklyDone }}/{{ weeklyTotal }} 次完成</span></div>
+          <button class="btn btn-outline btn-small" style="margin-top:12px" @click="resetPlanSelection">重新选择课表</button>
         </div>
 
         <!-- Phase Timeline -->
@@ -789,6 +790,7 @@ const { createApp, ref, reactive, computed, watch, onMounted, nextTick, toRefs }
 
 createApp({
   setup() {
+    const APP_VERSION = '1.0.1'
     // --- Page State ---
     const page = ref('onboarding1')
     const showSessions = ref(false)
@@ -1232,6 +1234,13 @@ createApp({
         form.weeklyDays = '2-3'
       }
     }
+    function resetPlanSelection() {
+      activePlan.value = null
+      selectedPlanGoal.value = ''
+      weeklyDone.value = 0
+      page.value = 'tab_plan'
+      localStorage.removeItem('runpilot_state')
+    }
 
     function generateSamplePlan() {
       const selectedGoal = selectedPlanGoal.value || form.goalDistance || '10k'
@@ -1634,12 +1643,17 @@ createApp({
         const state = JSON.parse(saved)
         if (state.onboardingDone) {
           Object.assign(form, state.form || {})
-          if (state.activePlan) activePlan.value = state.activePlan
           if (state.logs) trainingLogs.value = state.logs
           completedWorkouts.value = state.completedWorkouts || 12
           totalKmAll.value = state.totalKmAll || 168
           weeklyDone.value = state.weeklyDone || 0
-          page.value = 'tab_dashboard'
+          if (state.appVersion === APP_VERSION && state.activePlan) {
+            activePlan.value = state.activePlan
+            page.value = 'tab_dashboard'
+          } else {
+            activePlan.value = null
+            page.value = 'tab_plan'
+          }
         }
       } catch(e) {}
     }
@@ -1647,6 +1661,7 @@ createApp({
     // Auto-save
     setInterval(() => {
       localStorage.setItem('runpilot_state', JSON.stringify({
+        appVersion: APP_VERSION,
         onboardingDone: form.onboardingDone,
         form: JSON.parse(JSON.stringify(form)),
         activePlan: activePlan.value,
@@ -1672,7 +1687,7 @@ createApp({
       goalLabel, workoutColor, workoutEmoji, workoutLabel, phaseLabel, phaseColor,
       rpeColor, dayLabel,
       calcPace, parseTime, formatPace, parseCustomTime, toggleDevice, authorizeDevice,
-      goBack, completeOnboarding, generatePlan, selectPlanGoal, adjustPlan,
+      goBack, completeOnboarding, generatePlan, selectPlanGoal, resetPlanSelection, adjustPlan,
       completeWorkout, submitFeedback,
       sendChat, newChat, loadChat,
       saveProfile, resetApp,
