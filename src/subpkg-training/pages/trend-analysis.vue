@@ -68,6 +68,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useTrainingStore } from '@/stores/modules/training'
+
+const trainingStore = useTrainingStore()
 
 // 模拟数据
 const weeklyVolumeData = [32, 38, 42, 35, 45, 40, 48, 44]
@@ -84,11 +87,7 @@ const loadStatus = '最佳'
 const loadPercent = ref(55)
 const loadColor = '#4CAF50'
 
-const pbs = [
-  { distance: '5k', time: '22:30', date: '2026-03-15' },
-  { distance: '10k', time: '48:15', date: '2026-02-20' },
-  { distance: 'half_marathon', time: '1:52:00', date: '2025-11-10' }
-]
+const pbs = computed(() => trainingStore.pbs || [])
 
 function pbLabel(dist) {
   const map = { '1k': '1KM', '5k': '5KM', '10k': '10KM', half_marathon: '半马', marathon: '全马' }

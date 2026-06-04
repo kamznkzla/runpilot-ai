@@ -119,11 +119,7 @@ const trainingStore = useTrainingStore()
 const showPBConfetti = ref(false)
 const newPBDistance = ref('')
 
-const pbs = ref([
-  { distance: '5k', time: '22:30' },
-  { distance: '10k', time: '48:15' },
-  { distance: 'half_marathon', time: '1:52:00' }
-])
+const pbs = computed(() => trainingStore.pbs || [])
 
 const goalTimeShort = computed(() => {
   if (!userStore.goalTimeSec) return ''
