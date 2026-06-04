@@ -772,6 +772,101 @@ createApp({
     const calMonth = ref(new Date().getMonth() + 1)
     const calSelected = ref(null)
 
+    // --- Coach intelligence ---
+    function raceDistanceKm() {
+      return { '5k': 5, '10k': 10, half_marathon: 21.0975, marathon: 42.195 }[form.goalDistance] || 10
+    }
+
+    function parsePaceToSec(v) {
+      if (!v) return 0
+      const s = String(v).trim()
+      let m = s.match(/(\d+)\s*[':分]\s*(\d+)?/)
+      if (m) return parseInt(m[1]) * 60 + (parseInt(m[2] || '0') || 0)
+      m = s.match(/^(\d+(\.\d+)?)$/)
+      return m ? Math.round(parseFloat(m[1]) * 60) : 0
+    }
+
+    function bestKnownPaceSec() {
+      if (form.goalTimeSec > 0 && form.goalDistance) return Math.round(form.goalTimeSec / raceDistanceKm())
+      const values = Object.values(form.paces || {}).map(parsePaceToSec).filter(Boolean)
+      if (values.length) return Math.round(values.reduce((a,b)=>a+b,0) / values.length)
+      return 360
+    }
+
+    function paceWithDelta(baseSec, deltaSec) {
+      return formatPace(Math.max(150, Math.round(baseSec + deltaSec)))
+    }
+
+    function hrRange(maxHr, low, high) {
+      return `${Math.round(maxHr * low)}-${Math.round(maxHr * high)} bpm`
+    }
+
+    function strideLengthFor(paceSec, cadence) {
+      const stepsPerKm = cadence * (paceSec / 60)
+      return (1000 / stepsPerKm).toFixed(2)
+    }
+
+    function coachMetrics() {
+      const age = parseInt(form.age) || 30
+      const maxHr = 220 - age
+      const basePace = bestKnownPaceSec()
+      return {
+        age, maxHr, basePace,
+        easyPace: `${paceWithDelta(basePace, 60)}-${paceWithDelta(basePace, 100)}/km`,
+        aerobicPace: `${paceWithDelta(basePace, 45)}-${paceWithDelta(basePace, 90)}/km`,
+        thresholdPace: `${paceWithDelta(basePace, 5)}-${paceWithDelta(basePace, 25)}/km`,
+        lsdPace: `${paceWithDelta(basePace, 75)}-${paceWithDelta(basePace, 120)}/km`,
+        aerobicHr: hrRange(maxHr, 0.65, 0.75),
+        thresholdHr: hrRange(maxHr, 0.85, 0.90),
+        lsdHr: hrRange(maxHr, 0.60, 0.72)
+      }
+    }
+
+    function buildPersonalCoachReply(rawMsg, profileCtx, planCtx) {
+      const msg = String(rawMsg || '').toLowerCase()
+      const m = coachMetrics()
+      const ctx = `${profileCtx}${planCtx}`
+
+      if (/阈值|乳酸|tempo|节奏/.test(msg)) {
+        return { topic:'训练指标', reply:
+          `<p>${ctx}阈值跑的本质是“接近但不超过乳酸快速堆积点”。按你目前数据估算，建议先用 <b>${m.thresholdPace}</b>，心率控制在 <b>${m.thresholdHr}</b>，主观强度 RPE 7-8，感觉是“能说短句但不想聊天”。</p>
+           <p>经典做法：热身 15 分钟 + 2-3 组 10 分钟阈值跑，组间慢跑 2-3 分钟 + 冷身 10 分钟。不要把阈值跑跑成冲刺，后半段配速掉超过 10 秒/km 就说明开快了。</p>` }
+      }
+
+      if (/lsd|长距离|长跑|long/.test(msg)) {
+        return { topic:'训练指标', reply:
+          `<p>${ctx}LSD 重点不是快，而是扩大有氧底盘。建议配速 <b>${m.lsdPace}</b>，心率 <b>${m.lsdHr}</b>，RPE 4-5，能完整说话。</p>
+           <p>LSD、BPM、步频和步幅的关系：LSD 阶段心率应稳定，步频可以比比赛低一点但仍保持 <b>165-175 spm</b>；不要为了配速刻意拉大步幅。每周长距离增加不超过 10%，超过 90 分钟开始练补给。</p>` }
+      }
+
+      if (/有氧|zone2|二区|轻松跑|easy|慢跑|bpm|心率/.test(msg)) {
+        return { topic:'训练指标', reply:
+          `<p>${ctx}有氧跑建议落在 <b>${m.aerobicHr}</b>，配速约 <b>${m.aerobicPace}</b>。如果当天热、睡眠差或坡多，优先看 BPM，不要硬追配速。</p>
+           <p>简单判断：心率上升但配速没变，可能是心率漂移；超过 5%-8% 说明强度偏高或补水不足。多数跑者 70%-80% 的周跑量应该放在这个强度。</p>` }
+      }
+
+      if (/步频|cadence|步幅|stride|bpm/.test(msg)) {
+        const pace = m.basePace
+        return { topic:'跑姿指标', reply:
+          `<p>${ctx}步频、步幅和配速的公式是：<b>配速 = 1000 米 ÷（步频 × 步幅）</b>。以你估算配速 ${formatPace(pace)}/km 计算：170 spm 时步幅约 <b>${strideLengthFor(pace,170)} m</b>，180 spm 时步幅约 <b>${strideLengthFor(pace,180)} m</b>。</p>
+           <p>改跑姿优先顺序：先把步频提高 3%-5%，再看落地点是否在身体重心下方。不要直接追 180；如果当前 155 spm，先到 162-165 spm 更安全。步频升高后配速不变，步幅会自然缩短，膝盖刹车感通常会下降。</p>` }
+      }
+
+      if (/跑姿|落地|前掌|后跟|跨步|内旋|外翻|膝盖|髋|摆臂/.test(msg)) {
+        return { topic:'跑姿指标', reply:
+          `<p>${ctx}跑姿调整要用量化指标看结果：步频目标先设 <b>当前值 +3%-5%</b>，垂直振幅尽量低于 <b>8-10 cm</b>，触地时间左右差最好小于 <b>5%</b>，落地点靠近身体重心下方。</p>
+           <p>如果你膝前侧不适，先减少跨步和下坡，练臀中肌、股四头肌；如果小腿或跟腱紧，别突然改前掌落地。一次只改一个变量，连续 2 周观察心率、配速、疼痛评分和步频变化。</p>` }
+      }
+
+      if (/鞋|跑鞋|碳板|缓震|稳定|支撑|足弓|扁平足|高弓|内旋|预算|竞速/.test(msg)) {
+        return { topic:'跑鞋', reply:
+          `<p>${ctx}选鞋可以按四个指标定：体重、足弓/内旋、用途、目标配速。日常有氧和 LSD 优先 <b>缓震耐用</b>；明显过度内旋或扁平足优先 <b>稳定支撑</b>；阈值/间歇可选 <b>轻量训练鞋</b>；比赛再考虑碳板。</p>
+           <p>量化建议：鞋寿命通常 <b>500-800 km</b>；大体重或长距离训练选厚底缓震；5K/10K 追 PB 可用轻量或碳板，半马/全马要先用目标配速跑过 15-25 km 测试。告诉我你的体重、足弓、周跑量、预算和目标距离，我可以给更具体的鞋型方向。</p>` }
+      }
+
+      return null
+    }
+
     // --- Chat ---
     const chatMessages = ref([])
     const chatSessions = ref([])
@@ -1155,6 +1250,16 @@ createApp({
         chatLoading.value = false
         const profileCtx = form.goalDistance ? `你目前的目标是${goalLabel(form.goalDistance)}${form.goalTime ? '，目标时间'+form.goalTime : ''}。` : ''
         const planCtx = activePlan.value ? `处于${phaseLabel(activePlan.value.current_phase)}，第${currentWeek.value}周。` : ''
+        const specialist = buildPersonalCoachReply(msg, profileCtx, planCtx)
+        if (specialist) {
+          lastChatTopic.value = specialist.topic
+          lastChatReply.value = specialist.reply
+          chatMessages.value.push({role:'assistant',content:specialist.reply})
+          if (chatSessions.value.length > 0) {
+            chatSessions.value[0].preview = specialist.reply.replace(/<[^>]+>/g,'').slice(0,30)
+          }
+          return
+        }
 
         // 对话记忆：短消息+有历史话题 = 追问
         const isShortMsg = msg.length <= 12
