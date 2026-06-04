@@ -805,22 +805,23 @@ body {
     </div>
 
     <!-- Profile Page -->
-    <div class="page-content" v-if="page==='tab_profile'">
+    <div class="page-content" v-show="page==='tab_profile'" id="profilePage">
       <div class="profile-card">
-        <div class="avatar-circle">{{ form.nickname ? form.nickname[0] : '跑' }}</div>
-        <div style="font-size:22px;font-weight:800">{{ form.nickname || '跑者' }}</div>
-        <div style="font-size:13px;color:var(--accent-light);margin-top:4px">{{ goalLabel(form.goalDistance) }} · {{ form.goalTime || '完赛即可' }}</div>
+        <div class="avatar-circle">跑</div>
+        <div style="font-size:22px;font-weight:800">RunPilot</div>
+        <div style="font-size:13px;color:var(--accent-light);margin-top:4px">个人训练中心</div>
         <div class="profile-stats">
           <div class="profile-stat"><div class="profile-stat-value">{{ totalKmAll }}</div><div class="profile-stat-label">累计跑量</div></div>
           <div class="profile-divider"></div>
           <div class="profile-stat"><div class="profile-stat-value">{{ completedWorkouts }}</div><div class="profile-stat-label">训练次数</div></div>
           <div class="profile-divider"></div>
-          <div class="profile-stat"><div class="profile-stat-value">{{ pbs.length }}</div><div class="profile-stat-label">个人最佳</div></div>
+          <div class="profile-stat"><div class="profile-stat-value">0</div><div class="profile-stat-label">个人最佳</div></div>
         </div>
       </div>
-      <div v-if="pbs.length>0" class="card">
-        <div style="font-size:16px;font-weight:600;margin-bottom:8px">🏆 个人最佳</div>
-        <div v-for="pb in pbs" class="pb-item"><span style="font-size:13px;color:var(--text-muted)">{{ pb.dist }}</span><span style="font-family:var(--font-mono);font-size:19px;color:var(--accent);font-weight:600">{{ pb.time }}</span><span style="font-size:12px;color:var(--text-muted)">{{ pb.date }}</span></div>
+      <div class="card accent">
+        <div style="color:var(--accent-light);font-size:13px;margin-bottom:4px">Activity</div>
+        <div style="font-size:18px;font-weight:800">训练数据跟随本地记录</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-top:4px">手动添加或完成训练后，这里的累计跑量和训练次数会自动更新。</div>
       </div>
       <div class="menu-list">
         <div class="menu-item" @click="page='sub_edit_profile'"><span class="ico">👤</span><span class="lbl">编辑资料</span><span class="arrow">→</span></div>
