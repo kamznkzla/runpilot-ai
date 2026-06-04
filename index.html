@@ -1409,10 +1409,9 @@ createApp({
         rating: fbForm.rpe
       })
       if (fbStatus.value === 'done') {
-        completedWorkouts.value++
-        totalKmAll.value += dist
         weeklyDone.value++
       }
+      recalcTrainingStats()
       if (fbStatus.value === 'done') showConfettiFn('🎉','训练完成！','继续加油')
       page.value = 'tab_dashboard'
       setTimeout(() => page.value = 'tab_dashboard', 100)
@@ -1441,9 +1440,14 @@ createApp({
         rating: manualLog.rpe,
         source: '手动录入'
       })
-      completedWorkouts.value = trainingLogs.value.filter(l => l.status === 'done').length
-      totalKmAll.value = Math.round(trainingLogs.value.reduce((s,l)=>s+(parseFloat(l.distance)||0),0) * 10) / 10
+      recalcTrainingStats()
       page.value = 'sub_logs'
+    }
+
+    function recalcTrainingStats() {
+      const doneLogs = trainingLogs.value.filter(l => l.status === 'done')
+      completedWorkouts.value = doneLogs.length
+      totalKmAll.value = Math.round(doneLogs.reduce((s,l)=>s+(parseFloat(l.distance)||0),0) * 10) / 10
     }
 
     // --- Chat ---
@@ -1726,8 +1730,7 @@ createApp({
         if (state.onboardingDone) {
           Object.assign(form, state.form || {})
           if (state.logs) trainingLogs.value = state.logs
-          completedWorkouts.value = state.completedWorkouts || 0
-          totalKmAll.value = state.totalKmAll || 0
+          recalcTrainingStats()
           weeklyDone.value = state.weeklyDone || 0
           if (state.appVersion === APP_VERSION && state.activePlan) {
             activePlan.value = state.activePlan
@@ -1748,8 +1751,6 @@ createApp({
         form: JSON.parse(JSON.stringify(form)),
         activePlan: activePlan.value,
         logs: trainingLogs.value,
-        completedWorkouts: completedWorkouts.value,
-        totalKmAll: totalKmAll.value,
         weeklyDone: weeklyDone.value
       }))
     }, 3000)
