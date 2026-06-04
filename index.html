@@ -707,7 +707,11 @@ body {
       <div class="card"><div class="grid-2"><div v-for="s in summaryItems" class="summary-item"><div class="summary-val">{{ s.val }}</div><div class="summary-lbl">{{ s.lbl }}</div></div></div></div>
 
       <!-- AI Daily Tip -->
-      <div class="card accent"><div style="color:var(--accent-light);font-size:13px;margin-bottom:4px">💡 AI 教练说</div><div style="font-size:15px;color:var(--text-secondary);line-height:1.6">"{{ dailyTip }}"</div></div>
+      <div class="card accent">
+        <div style="color:var(--accent-light);font-size:13px;margin-bottom:4px">💡 AI 教练说</div>
+        <div style="font-size:15px;color:var(--text-secondary);line-height:1.6">"{{ coachTip.text }}"</div>
+        <div v-if="coachTip.author" style="font-size:12px;color:var(--text-muted);margin-top:8px">- {{ coachTip.author }}</div>
+      </div>
 
       <!-- Quick Links -->
       <div class="card"><div class="grid-4"><div v-for="q in quickLinks" class="quick-link" @click="page=q.page"><div class="ico">{{ q.ico }}</div><div class="lbl">{{ q.lbl }}</div></div></div></div>
@@ -1113,7 +1117,79 @@ createApp({
       { icon:'🏅', name:'初次10公里' }, { icon:'💪', name:'月跑量100K' }, { icon:'🌟', name:'半马达成' }, { icon:'👑', name:'全马达成' }, { icon:'🔥', name:'连续30天' }
     ])
 
-    const dailyTip = ref('每一次跑步，都是和自己的对话。坚持下去，你会发现更好的自己。')
+    const quotePools = {
+      easy: [
+        { text:'训练要有计划性，不能盲目跟风。', author:'大迫杰' },
+        { text:'轻松跑不是偷懒，是为下一次高质量训练存入本金。', author:'RunPilot Coach' },
+        { text:'今天能完整聊天的配速，就是最好的有氧配速。', author:'RunPilot Coach' },
+        { text:'把心率压住，把步伐放松，身体会在安静里变强。', author:'RunPilot Coach' },
+        { text:'慢下来不是退步，是让训练可持续。', author:'RunPilot Coach' },
+        { text:'有氧日的胜利，是跑完以后还想继续跑。', author:'RunPilot Coach' }
+      ],
+      rest: [
+        { text:'恢复是训练的重要组成部分，不可忽视。', author:'大迫杰' },
+        { text:'休息日不是空白，它是身体把训练变成能力的时间。', author:'RunPilot Coach' },
+        { text:'真正会训练的人，也会认真休息。', author:'RunPilot Coach' },
+        { text:'今天少跑一点，是为了之后跑得更久。', author:'RunPilot Coach' },
+        { text:'睡眠、补水和放松，是隐藏在课表里的训练。', author:'RunPilot Coach' }
+      ],
+      recovery: [
+        { text:'恢复跑的目标不是证明自己，而是把疲劳带走。', author:'RunPilot Coach' },
+        { text:'越疲劳，越要让配速服从身体。', author:'RunPilot Coach' },
+        { text:'轻轻跑完，比勉强跑快更有价值。', author:'RunPilot Coach' },
+        { text:'恢复跑结束时，腿应该比出门时更轻。', author:'RunPilot Coach' },
+        { text:'今天的关键词只有一个：放松。', author:'RunPilot Coach' }
+      ],
+      tempo: [
+        { text:'我不喜欢天赋这个词，因为它掩盖了我所有的努力。', author:'雅各布·英格布里格森' },
+        { text:'阈值跑要可控，不要把训练跑成比赛。', author:'RunPilot Coach' },
+        { text:'最好的阈值感，是累但不崩，稳但不拖。', author:'RunPilot Coach' },
+        { text:'节奏跑练的是控制力，不是逞强。', author:'RunPilot Coach' },
+        { text:'如果最后一段还能稳住动作，今天的强度就刚刚好。', author:'RunPilot Coach' },
+        { text:'阈值日要相信耐心，速度会从稳定里长出来。', author:'RunPilot Coach' }
+      ],
+      interval: [
+        { text:'速度课只需要快得准确，不需要快得失控。', author:'RunPilot Coach' },
+        { text:'间歇的价值在重复质量，而不是第一组有多猛。', author:'RunPilot Coach' },
+        { text:'强度日守住动作，成绩才会守住你。', author:'RunPilot Coach' },
+        { text:'每一组都留一点余地，最后一组才有意义。', author:'RunPilot Coach' },
+        { text:'速度是奖励，不是惩罚。', author:'RunPilot Coach' }
+      ],
+      long: [
+        { text:'长距离不是和配速较劲，而是和补给、心率、耐心合作。', author:'RunPilot Coach' },
+        { text:'LSD 的核心是低强度长时间，让身体学会省油。', author:'RunPilot Coach' },
+        { text:'今天跑得稳，比今天跑得狠更接近马拉松。', author:'RunPilot Coach' },
+        { text:'长跑的答案常常在后半程出现。', author:'RunPilot Coach' },
+        { text:'把前半程跑得克制，才有资格享受后半程。', author:'RunPilot Coach' },
+        { text:'马拉松训练，最难的是不被一时状态带跑。', author:'RunPilot Coach' }
+      ],
+      general: [
+        { text:'我不知道极限在哪里，但是我会一直向着它跑下去。', author:'基普乔格' },
+        { text:'只要你有一双跑鞋，一条好的路，就可以跑得很高兴。', author:'村上春树' },
+        { text:'No human is limited.', author:'Eliud Kipchoge' },
+        { text:'To give anything less than your best is to sacrifice the gift.', author:'Steve Prefontaine' },
+        { text:'The marathon is a very good metaphor for life.', author:'Eliud Kipchoge' },
+        { text:'A race is a work of art that people can look at and be affected by.', author:'Steve Prefontaine' },
+        { text:'I run to see who has the most guts.', author:'Steve Prefontaine' },
+        { text:'A marathon is hundreds of miles. The finish is the last 26.2.', author:'Hal Higdon' },
+        { text:'Run the first part with your head, the middle with personality, the last with heart.', author:'Mike Fanelli' },
+        { text:'Some seek the comfort of their therapist; I seek the comfort of running shoes.', author:'Dean Karnazes' },
+        { text:'如果今天不想跑，就只承诺出门十分钟。很多训练都是这样开始的。', author:'RunPilot Coach' },
+        { text:'跑步不会每天都轻松，但每天都能教你一点东西。', author:'RunPilot Coach' },
+        { text:'真正的进步，通常藏在那些平凡的有氧日里。', author:'RunPilot Coach' },
+        { text:'不要用一次训练定义自己，用长期坚持定义自己。', author:'RunPilot Coach' },
+        { text:'今天的任务不是完美，是完成得聪明。', author:'RunPilot Coach' },
+        { text:'好状态要珍惜，坏状态要尊重。', author:'RunPilot Coach' },
+        { text:'配速会波动，习惯会留下。', author:'RunPilot Coach' },
+        { text:'训练不是每天打满分，而是把缺课变少，把恢复做好。', author:'RunPilot Coach' },
+        { text:'跑步的复利，发生在一次次普通训练之后。', author:'RunPilot Coach' },
+        { text:'比起今天跑多快，更重要的是明天还能不能健康地跑。', author:'RunPilot Coach' },
+        { text:'当你学会按计划慢跑，也就学会了按计划变强。', author:'RunPilot Coach' },
+        { text:'身体发出的信号，比手表上的数字更早知道答案。', author:'RunPilot Coach' },
+        { text:'长跑训练的美感，是把冲动磨成节奏。', author:'RunPilot Coach' },
+        { text:'每一次跑步，都是和自己的对话。坚持下去，你会发现更好的自己。', author:'RunPilot Coach' }
+      ]
+    }
 
     // --- Computed ---
     const hasActivePlan = computed(() => !!activePlan.value)
@@ -1132,6 +1208,14 @@ createApp({
       const dayKeys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
       const today = dayKeys[new Date().getDay()]
       return week.days.find(d => d.day === today) || null
+    })
+
+    const coachTip = computed(() => {
+      const type = todayWorkout.value?.type || ''
+      const pool = quotePools[type]?.length ? quotePools[type] : quotePools.general
+      const dateKey = new Date().toISOString().split('T')[0]
+      const seed = `${dateKey}-${type || 'general'}-${form.goalDistance || 'runpilot'}`
+      return pool[pickDailyIndex(seed, pool.length)] || quotePools.general[0]
     })
 
     const weeklyDone = ref(0)
@@ -1326,6 +1410,15 @@ createApp({
       if (!pace || !km) return 0
       const m = String(pace).match(/(\d+)'(\d+)"/)
       return m ? Math.round((parseInt(m[1])*60 + parseInt(m[2])) * km) : 0
+    }
+    function pickDailyIndex(seed, length) {
+      if (!length) return 0
+      let hash = 0
+      for (let i = 0; i < seed.length; i++) {
+        hash = ((hash << 5) - hash) + seed.charCodeAt(i)
+        hash |= 0
+      }
+      return Math.abs(hash) % length
     }
     function parseCustomTime() {
       const t = form.goalTimeCustom
@@ -1883,7 +1976,7 @@ createApp({
       fbStatus, fbForm, manualLog, calYear, calMonth, calSelected, chatMessages, chatSessions,
       trainingLogs, completedWorkouts, totalKmAll, confettiPieces,
       distances, goalDistances, platforms, quickQuestions, quickLinks, pbs,
-      earnedAch, lockedAch, dailyTip,
+      earnedAch, lockedAch, coachTip,
       hasActivePlan, currentWeek, todayWorkout, weeklyTotal, weeklyDone, weeklyPct,
       weekTotalKm, summaryItems, goalPresets, raceDays, raceHours, raceMins,
       motivationText, todayDate, todayWeekday,
