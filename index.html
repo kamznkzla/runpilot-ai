@@ -741,8 +741,25 @@ body {
 
     <!-- Training Logs -->
     <div class="page-content" v-if="page==='sub_logs'">
+      <div class="flex-between" style="margin-bottom:12px">
+        <div style="font-size:16px;font-weight:600">训练记录</div>
+        <button class="btn btn-primary btn-small" style="border-radius:50%;width:38px;height:38px;padding:0;font-size:24px;line-height:38px" @click="startManualLog">+</button>
+      </div>
       <div v-if="trainingLogs.length===0" class="empty"><div class="eicon">📋</div><div class="etitle">暂无训练记录</div></div>
-      <div v-for="l in trainingLogs" class="log-card"><div class="log-header"><span style="font-size:14px;font-weight:500">{{ l.date }}</span><span class="badge" :style="{background:l.status==='done'?'rgba(76,175,80,0.2)':'rgba(255,183,77,0.2)',color:l.status==='done'?'var(--success)':'var(--warning)'}">{{ l.status==='done'?'完成':l.status==='partial'?'部分':'跳过' }}</span></div><div v-if="l.status==='done'" class="log-stats"><span class="mono" style="font-size:17px;font-weight:600">{{ l.distance }}km</span><span class="mono" style="color:var(--accent-light)">{{ l.pace }}/km</span><span v-if="l.rating" style="color:var(--text-muted)">体感 {{ l.rating }}/5</span></div></div>
+      <div v-for="l in trainingLogs" class="log-card"><div class="log-header"><span style="font-size:14px;font-weight:500">{{ l.date }}</span><span class="badge" :style="{background:l.status==='done'?'rgba(76,175,80,0.2)':'rgba(255,183,77,0.2)',color:l.status==='done'?'var(--success)':'var(--warning)'}">{{ l.status==='done'?'完成':l.status==='partial'?'部分':'跳过' }}</span></div><div v-if="l.status==='done'" class="log-stats"><span class="mono" style="font-size:17px;font-weight:600">{{ l.distance }}km</span><span class="mono" style="color:var(--accent-light)">{{ l.pace }}/km</span><span v-if="l.duration_min" style="color:var(--text-muted)">{{ l.duration_min }}分钟</span><span v-if="l.rating" style="color:var(--text-muted)">体感 {{ l.rating }}/10</span><span v-if="l.source" style="color:var(--text-muted)">{{ l.source }}</span></div></div>
+    </div>
+
+    <!-- Manual Training Log -->
+    <div class="page-content" v-if="page==='sub_manual_log'">
+      <div class="card">
+        <div style="font-size:16px;font-weight:600;margin-bottom:12px">手动添加训练数据</div>
+        <div style="margin-bottom:12px"><label class="text-muted" style="display:block;margin-bottom:4px">日期</label><input class="input" type="date" v-model="manualLog.date"></div>
+        <div style="margin-bottom:12px"><label class="text-muted" style="display:block;margin-bottom:4px">实际距离 (km)</label><input class="input" type="number" step="0.01" min="0" v-model="manualLog.distance" placeholder="如 5.00"></div>
+        <div style="margin-bottom:12px"><label class="text-muted" style="display:block;margin-bottom:4px">实际时长 (分钟)</label><input class="input" type="number" step="1" min="0" v-model="manualLog.duration" placeholder="如 32"></div>
+        <div v-if="manualLog.distance&&manualLog.duration" style="text-align:center;color:var(--accent-light);font-size:13px;margin-bottom:12px">估算配速：{{ formatPace(Math.round(manualLog.duration*60/manualLog.distance)) }}/km</div>
+        <div style="margin-bottom:12px"><label class="text-muted" style="display:block;margin-bottom:8px">体感 RPE</label><div class="rpe-row"><div v-for="i in 10" class="rpe-dot" :class="{active:i<=manualLog.rpe}" :style="{background:i<=manualLog.rpe?rpeColor(i):'rgba(255,255,255,0.08)'}" @click="manualLog.rpe=i">{{ i }}</div></div></div>
+        <button class="btn btn-primary" :disabled="!manualLog.distance||!manualLog.duration" @click="submitManualLog">保存训练记录</button>
+      </div>
     </div>
 
     <!-- Analysis -->
@@ -822,6 +839,7 @@ createApp({
     const selectedDay = ref(null)
     const fbStatus = ref('done')
     const fbForm = reactive({ distance: '', duration: '', rpe: 5 })
+    const manualLog = reactive({ date: '', distance: '', duration: '', rpe: 5 })
 
     // --- Calendar ---
     const calYear = ref(new Date().getFullYear())
@@ -1102,7 +1120,7 @@ createApp({
       const map = {
         tab_dashboard:'RunPilot', tab_plan:'训练计划', tab_coach:'AI 教练', tab_profile:'我的',
         sub_calendar:'训练日历', sub_workout_detail:'训练详情', sub_feedback:'训练反馈',
-        sub_logs:'训练日志', sub_analysis:'趋势分析', sub_achievements:'成就墙',
+        sub_logs:'训练日志', sub_manual_log:'添加训练', sub_analysis:'趋势分析', sub_achievements:'成就墙',
         sub_edit_profile:'编辑资料', sub_settings:'设置'
       }
       return map[page.value] || ''
@@ -1224,9 +1242,10 @@ createApp({
 
     // --- Navigation ---
     function goBack() {
-      const subPages = ['sub_calendar','sub_workout_detail','sub_feedback','sub_logs','sub_analysis','sub_achievements','sub_edit_profile','sub_settings']
+      const subPages = ['sub_calendar','sub_workout_detail','sub_feedback','sub_logs','sub_manual_log','sub_analysis','sub_achievements','sub_edit_profile','sub_settings']
       if (subPages.includes(page.value)) {
         if (page.value === 'sub_feedback') page.value = 'sub_workout_detail'
+        else if (page.value === 'sub_manual_log') page.value = 'sub_logs'
         else if (page.value === 'sub_workout_detail') page.value = 'tab_plan'
         else if (page.value === 'sub_calendar') page.value = 'tab_plan'
         else page.value = 'tab_profile'
@@ -1397,6 +1416,34 @@ createApp({
       if (fbStatus.value === 'done') showConfettiFn('🎉','训练完成！','继续加油')
       page.value = 'tab_dashboard'
       setTimeout(() => page.value = 'tab_dashboard', 100)
+    }
+
+    function startManualLog() {
+      const today = new Date().toISOString().split('T')[0]
+      manualLog.date = today
+      manualLog.distance = ''
+      manualLog.duration = ''
+      manualLog.rpe = 5
+      page.value = 'sub_manual_log'
+    }
+
+    function submitManualLog() {
+      const dist = parseFloat(manualLog.distance) || 0
+      const duration = parseFloat(manualLog.duration) || 0
+      if (!dist || !duration) return
+      const pace = formatPace(Math.round(duration * 60 / dist))
+      trainingLogs.value.unshift({
+        date: manualLog.date || new Date().toISOString().split('T')[0],
+        status: 'done',
+        distance: Math.round(dist * 100) / 100,
+        duration_min: Math.round(duration),
+        pace,
+        rating: manualLog.rpe,
+        source: '手动录入'
+      })
+      completedWorkouts.value = trainingLogs.value.filter(l => l.status === 'done').length
+      totalKmAll.value = Math.round(trainingLogs.value.reduce((s,l)=>s+(parseFloat(l.distance)||0),0) * 10) / 10
+      page.value = 'sub_logs'
     }
 
     // --- Chat ---
@@ -1710,7 +1757,7 @@ createApp({
     return {
       page, showSessions, showConfetti, generatingPlan, chatLoading, chatInput,
       currentChatId, form, settings, activePlan, planDuration, selectedPlanGoal, selectedDay,
-      fbStatus, fbForm, calYear, calMonth, calSelected, chatMessages, chatSessions,
+      fbStatus, fbForm, manualLog, calYear, calMonth, calSelected, chatMessages, chatSessions,
       trainingLogs, completedWorkouts, totalKmAll, confettiPieces,
       distances, goalDistances, platforms, quickQuestions, quickLinks, pbs,
       earnedAch, lockedAch, dailyTip,
@@ -1723,7 +1770,7 @@ createApp({
       rpeColor, dayLabel,
       calcPace, parseTime, formatPace, parseCustomTime, toggleDevice, authorizeDevice,
       goBack, completeOnboarding, generatePlan, selectPlanGoal, resetPlanSelection, adjustPlan,
-      completeWorkout, submitFeedback,
+      completeWorkout, submitFeedback, startManualLog, submitManualLog,
       sendChat, newChat, loadChat,
       saveProfile, resetApp,
       drawRing, drawCharts

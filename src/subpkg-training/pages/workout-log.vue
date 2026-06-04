@@ -3,6 +3,11 @@
     <rp-navbar :showBack="true" title="训练日志" />
 
     <scroll-view scroll-y class="log-content">
+      <view class="log-actions">
+        <text class="log-actions-title">训练记录</text>
+        <button class="add-log-btn" @tap="addManualLog">+</button>
+      </view>
+
       <view v-if="trainingStore.logs.length === 0">
         <rp-empty-state icon="📋" title="暂无训练记录" description="完成训练后这里会显示记录" />
       </view>
@@ -54,6 +59,9 @@ const trainingStore = useTrainingStore()
 
 function workoutLabel(type) { return WORKOUT_TYPE_LABELS[type] || '' }
 function statusLabel(s) { return COMPLETION_STATUS_LABELS[s] || '' }
+function addManualLog() {
+  uni.navigateTo({ url: '/subpkg-training/pages/workout-feedback?status=done&manual=1' })
+}
 
 onMounted(() => { trainingStore.fetchLogs(50) })
 </script>
@@ -61,6 +69,12 @@ onMounted(() => { trainingStore.fetchLogs(50) })
 <style lang="scss" scoped>
 .log-page { min-height: 100vh; background-color: $color-bg-primary; }
 .log-content { padding: $spacing-md; }
+.log-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: $spacing-md; }
+.log-actions-title { font-size: $font-size-md; font-weight: 600; color: $color-text-primary; }
+.add-log-btn {
+  width: 72rpx; height: 72rpx; border-radius: 50%; padding: 0; line-height: 72rpx;
+  background: $color-accent; color: #fff; font-size: 44rpx; font-weight: 600; border: none;
+}
 
 .log-card { background: $color-bg-card; border-radius: $radius-md; padding: $spacing-md; margin-bottom: $spacing-md; }
 .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: $spacing-sm; }
