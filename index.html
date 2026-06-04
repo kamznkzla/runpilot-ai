@@ -443,9 +443,21 @@ body {
 .plan-goal-sub { margin-top: 3px; font-size: 11px; color: var(--accent-light); }
 .plan-goal-desc { margin-top: 6px; font-size: 11px; color: var(--text-muted); line-height: 1.45; }
 .plan-goal-card.beginner .plan-goal-media { background: radial-gradient(circle at 30% 20%, #A3FF12, transparent 34%), linear-gradient(135deg,#1C1C1E,#0A7F58); }
-.plan-goal-card.tenk .plan-goal-media { background-image: linear-gradient(180deg,rgba(15,15,26,0.05),rgba(15,15,26,0.3)), url('https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Jakob_Ingebrigtsen.jpg/640px-Jakob_Ingebrigtsen.jpg'); }
-.plan-goal-card.half .plan-goal-media { background: linear-gradient(135deg,#004E98 0%,#004E98 44%,#fff 44%,#fff 50%,#00843D 50%,#00843D 100%); }
-.plan-goal-card.full .plan-goal-media { background: linear-gradient(135deg,#13315C,#0B6E4F 55%,#F2C94C); }
+.plan-goal-card.tenk .plan-goal-media {
+  background-image: linear-gradient(180deg,rgba(0,0,0,0.02),rgba(0,0,0,0.42)), url('assets/plan-goals/10k-ingebrigtsen.jpg');
+  background-position: center 28%;
+}
+.plan-goal-card.half .plan-goal-media {
+  background-image: linear-gradient(180deg,rgba(0,0,0,0.02),rgba(0,0,0,0.5)), url('assets/plan-goals/half-aoyama.jpg');
+  background-position: center;
+}
+.plan-goal-card.full .plan-goal-media {
+  background: #fff url('assets/plan-goals/marathon-boston.jpg') center / contain no-repeat;
+}
+.plan-goal-card.tenk .plan-goal-icon,
+.plan-goal-card.half .plan-goal-icon,
+.plan-goal-card.full .plan-goal-icon { display: none; }
+.plan-goal-card.full .plan-goal-media::after { display: none; }
 .plan-goal-card.full .plan-goal-icon { font-size: 30px; }
 @media (max-width: 380px) { .plan-goal-grid { grid-template-columns: 1fr; } }
 
