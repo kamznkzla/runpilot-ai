@@ -985,11 +985,6 @@ createApp({
       { ico:'📈', lbl:'趋势分析', page:'sub_analysis' }
     ]
 
-    const pbs = ref([
-      { dist:'5KM', time:'25:30', date:'2026-03-15' },
-      { dist:'10KM', time:'52:15', date:'2026-02-20' }
-    ])
-
     const earnedAch = ref([
       { icon:'🏃', name:'初次5公里' }, { icon:'🔥', name:'连续7天' }, { icon:'🏆', name:'5K PB' }
     ])
@@ -1026,6 +1021,34 @@ createApp({
     })
     const weeklyPct = computed(() => weeklyTotal.value > 0 ? Math.round(weeklyDone.value/weeklyTotal.value*100) : 0)
     const weekTotalKm = computed(() => activePlan.value?.weeks[currentWeek.value-1]?.total_km || 0)
+    const pbs = computed(() => {
+      const map = {}
+      distances.forEach(d => {
+        const sec = parseTime(form.times?.[d.key])
+        if (sec > 0) {
+          map[d.key] = { dist:d.label.replace(' 公里','KM'), time:formatRaceTime(sec), date:'手动录入', sec }
+        }
+      })
+      trainingLogs.value.forEach(l => {
+        if (l.status !== 'done') return
+        const km = parseFloat(l.distance) || 0
+        const durationMin = parseFloat(l.duration_min || l.duration) || 0
+        const sec = durationMin > 0 ? Math.round(durationMin * 60) : paceToDurationSec(l.pace, km)
+        if (!km || !sec) return
+        const candidates = [
+          { key:'s1k', km:1, label:'1KM' },
+          { key:'s3k', km:3, label:'3KM' },
+          { key:'s5k', km:5, label:'5KM' },
+          { key:'s10k', km:10, label:'10KM' }
+        ]
+        candidates.forEach(c => {
+          if (Math.abs(km - c.km) <= c.km * 0.03) {
+            if (!map[c.key] || sec < map[c.key].sec) map[c.key] = { dist:c.label, time:formatRaceTime(sec), date:l.date || '训练记录', sec }
+          }
+        })
+      })
+      return Object.values(map).sort((a,b)=>a.dist.localeCompare(b.dist, 'zh-CN', { numeric:true }))
+    })
     const summaryItems = computed(() => {
       // 从训练日志中计算真实数据
       const now = new Date()
@@ -1170,6 +1193,18 @@ createApp({
     function formatPace(sec) {
       if (!sec || sec <= 0) return "--'--\""
       return `${Math.floor(sec/60)}'${String(sec%60).padStart(2,'0')}"`
+    }
+    function formatRaceTime(sec) {
+      if (!sec || sec <= 0) return '--'
+      const h = Math.floor(sec / 3600)
+      const m = Math.floor((sec % 3600) / 60)
+      const s = sec % 60
+      return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`
+    }
+    function paceToDurationSec(pace, km) {
+      if (!pace || !km) return 0
+      const m = String(pace).match(/(\d+)'(\d+)"/)
+      return m ? Math.round((parseInt(m[1])*60 + parseInt(m[2])) * km) : 0
     }
     function parseCustomTime() {
       const t = form.goalTimeCustom
@@ -1351,7 +1386,7 @@ createApp({
 
       trainingLogs.value.unshift({
         date: new Date().toISOString().split('T')[0],
-        status: fbStatus.value, distance: dist, pace: pace,
+        status: fbStatus.value, distance: dist, duration_min: parseFloat(fbForm.duration) || 0, pace: pace,
         rating: fbForm.rpe
       })
       if (fbStatus.value === 'done') {
@@ -1644,8 +1679,8 @@ createApp({
         if (state.onboardingDone) {
           Object.assign(form, state.form || {})
           if (state.logs) trainingLogs.value = state.logs
-          completedWorkouts.value = state.completedWorkouts || 12
-          totalKmAll.value = state.totalKmAll || 168
+          completedWorkouts.value = state.completedWorkouts || 0
+          totalKmAll.value = state.totalKmAll || 0
           weeklyDone.value = state.weeklyDone || 0
           if (state.appVersion === APP_VERSION && state.activePlan) {
             activePlan.value = state.activePlan
