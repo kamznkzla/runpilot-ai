@@ -35,7 +35,7 @@
         <text class="group-title">关于</text>
         <view class="setting-item">
           <text class="setting-label">版本</text>
-          <text class="setting-value">1.0.0</text>
+          <text class="setting-value">1.0.1</text>
         </view>
         <view class="setting-item">
           <text class="setting-label">用户协议</text>

@@ -94,7 +94,7 @@
       </view>
 
       <view class="version-footer">
-        <text>RunPilot AI v1.0.0</text>
+        <text>RunPilot AI v1.0.1</text>
       </view>
     </scroll-view>
 
