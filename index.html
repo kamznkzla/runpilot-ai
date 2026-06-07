@@ -900,6 +900,17 @@ body {
       <div class="switch-wrap"><span>训练提醒</span><div class="toggle" :class="{on:settings.trainingReminder}" @click="settings.trainingReminder=!settings.trainingReminder"></div></div>
       <div class="switch-wrap"><span>比赛倒计时提醒</span><div class="toggle" :class="{on:settings.raceReminder}" @click="settings.raceReminder=!settings.raceReminder"></div></div>
       <div class="switch-wrap"><span>周报推送</span><div class="toggle" :class="{on:settings.weeklyReport}" @click="settings.weeklyReport=!settings.weeklyReport"></div></div>
+      <div class="settings-title" style="margin-top:14px">AI 教练</div>
+      <div class="switch-wrap"><span>启用真 AI（Gemini Flash）</span><div class="toggle" :class="{on:settings.realAIEnabled}" @click="settings.realAIEnabled=!settings.realAIEnabled"></div></div>
+      <div class="card">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">Gemini API Key</div>
+        <input class="input" type="password" v-model="settings.geminiApiKey" placeholder="AIza...，仅保存在本机浏览器">
+        <div style="font-size:12px;color:var(--text-muted);margin-top:8px;line-height:1.5">静态网页无法安全隐藏密钥，所以这里不写入仓库，只存在你的 localStorage。未填写或调用失败时自动回退本地 Q&A。</div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">模型</div>
+        <input class="input" v-model="settings.geminiModel" placeholder="gemini-2.5-flash">
+      </div>
       <div class="settings-title" style="margin-top:14px">关于</div>
       <div class="switch-wrap"><span>版本</span><span style="color:var(--text-muted);font-size:13px">1.0.1</span></div>
       <button class="btn btn-outline" style="margin-top:30px;color:var(--error);border-color:var(--error)" @click="resetApp">退出登录</button>
@@ -949,7 +960,14 @@ createApp({
     })
 
     // --- Settings ---
-    const settings = reactive({ trainingReminder: true, raceReminder: true, weeklyReport: true })
+    const settings = reactive({
+      trainingReminder: true,
+      raceReminder: true,
+      weeklyReport: true,
+      realAIEnabled: false,
+      geminiApiKey: '',
+      geminiModel: 'gemini-2.5-flash'
+    })
 
     // --- Training Plan ---
     const activePlan = ref(null)
@@ -1669,7 +1687,7 @@ createApp({
     }
 
     // --- Chat ---
-    function sendChat(text) {
+    async function sendChat(text) {
       // 兼容直接调用和事件调用
       const msg = (typeof text === 'string' && text) ? text : chatInput.value.trim()
       if (!msg || chatLoading.value) return
@@ -1678,8 +1696,23 @@ createApp({
       chatInput.value = ''
       chatLoading.value = true
 
-      // 安全兜底：3秒后强制重置 loading
-      const safetyTimer = setTimeout(() => { chatLoading.value = false }, 5000)
+      // 安全兜底：Gemini 可能有网络延迟，超时后允许用户继续输入
+      const safetyTimer = setTimeout(() => { chatLoading.value = false }, 25000)
+
+      if (settings.realAIEnabled && settings.geminiApiKey.trim()) {
+        try {
+          const aiReply = await callGeminiCoach(msg)
+          clearTimeout(safetyTimer)
+          chatLoading.value = false
+          chatMessages.value.push({role:'assistant',content:aiReply})
+          if (chatSessions.value.length > 0) {
+            chatSessions.value[0].preview = aiReply.replace(/<[^>]+>/g,'').slice(0,30)
+          }
+          return
+        } catch (err) {
+          console.warn('Gemini coach failed, falling back to local Q&A:', err)
+        }
+      }
 
       setTimeout(() => {
         clearTimeout(safetyTimer)
@@ -1835,6 +1868,101 @@ createApp({
       }, 1200)
     }
 
+    async function callGeminiCoach(msg) {
+      const apiKey = settings.geminiApiKey.trim()
+      const model = (settings.geminiModel || 'gemini-2.5-flash').trim()
+      if (!apiKey) throw new Error('Missing Gemini API key')
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`
+      const recent = trainingLogs.value.slice(0, 8).map(l => ({
+        date: l.date,
+        status: l.status,
+        distance_km: l.distance,
+        duration_min: l.duration_min || l.duration,
+        pace: l.pace,
+        rpe: l.rating,
+        source: l.source || 'plan'
+      }))
+      const currentWeekPlan = activePlan.value?.weeks?.[currentWeek.value - 1]?.days?.map(d => ({
+        day: dayLabel(d.day),
+        type: workoutLabel(d.type),
+        distance_km: d.distance_km || 0,
+        target_pace: d.target_pace || '',
+        duration_min: d.duration_min || 0,
+        rpe_target: d.rpe_target || 0,
+        description: d.description || ''
+      })) || []
+      const history = chatMessages.value.slice(-8).map(m => `${m.role === 'assistant' ? '教练' : '用户'}：${stripHtml(m.content)}`).join('\n')
+      const prompt = [
+        '你是 RunPilot 的中文跑步 AI 教练。请给出个性化、量化、谨慎的训练建议。',
+        '回答要求：',
+        '1. 使用中文，语气像专业但亲和的跑步教练。',
+        '2. 优先结合用户目标、当前课表、训练记录、配速、心率、步频、步幅、RPE 等量化指标。',
+        '3. 如果用户问阈值跑、LSD、有氧、BPM、步频、步幅、跑姿或跑鞋，请给出可执行指标和判断标准。',
+        '4. 不要编造用户没有提供的数据；没有数据时说明需要哪些数据。',
+        '5. 涉及胸痛、晕厥、持续疼痛、急性伤病时，建议停止训练并咨询医生；不要替代医疗诊断。',
+        '6. 回答控制在 3-6 段，必要时用简短列表。',
+        '',
+        `用户资料：${JSON.stringify({
+          age: form.age || '',
+          gender: form.gender || '',
+          height_cm: form.height || '',
+          weight_kg: form.weight || '',
+          weeklyDays: form.weeklyDays || '',
+          experience: form.experience || '',
+          goalDistance: goalLabel(form.goalDistance),
+          goalTime: form.goalTime || '',
+          devices: form.devices || []
+        })}`,
+        `当前计划：${activePlan.value ? JSON.stringify({
+          name: activePlan.value.plan_name,
+          phase: phaseLabel(activePlan.value.current_phase),
+          currentWeek: currentWeek.value,
+          totalWeeks: activePlan.value.total_weeks,
+          weeklyDone: weeklyDone.value,
+          weeklyTotal: weeklyTotal.value,
+          weekTotalKm: weekTotalKm.value,
+          thisWeek: currentWeekPlan
+        }) : '暂无训练计划'}`,
+        `最近训练记录：${recent.length ? JSON.stringify(recent) : '暂无训练记录'}`,
+        `最近对话：\n${history}`,
+        `用户问题：${msg}`
+      ].join('\n')
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.45, topP: 0.9, maxOutputTokens: 900 }
+        })
+      })
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '')
+        throw new Error(`Gemini API ${res.status}: ${errText.slice(0, 200)}`)
+      }
+      const data = await res.json()
+      const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('\n').trim()
+      if (!text) throw new Error('Gemini returned empty response')
+      return formatAssistantText(text)
+    }
+
+    function stripHtml(html) {
+      return String(html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))
+    }
+
+    function formatAssistantText(text) {
+      return escapeHtml(text)
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n{2,}/g, '</p><p>')
+        .replace(/\n/g, '<br>')
+        .replace(/^/, '<p>')
+        .replace(/$/, '</p>')
+    }
+
     function newChat() {
       currentChatId.value = 'chat_' + Date.now()
       chatMessages.value = []
@@ -1966,6 +2094,15 @@ createApp({
         const state = JSON.parse(saved)
         if (state.onboardingDone) {
           Object.assign(form, state.form || {})
+          Object.assign(settings, {
+            trainingReminder: true,
+            raceReminder: true,
+            weeklyReport: true,
+            realAIEnabled: false,
+            geminiApiKey: '',
+            geminiModel: 'gemini-2.5-flash',
+            ...(state.settings || {})
+          })
           if (state.logs) trainingLogs.value = state.logs
           recalcTrainingStats()
           if (state.appVersion === APP_VERSION && state.activePlan) {
@@ -1985,6 +2122,7 @@ createApp({
         appVersion: APP_VERSION,
         onboardingDone: form.onboardingDone,
         form: JSON.parse(JSON.stringify(form)),
+        settings: JSON.parse(JSON.stringify(settings)),
         activePlan: activePlan.value,
         logs: trainingLogs.value,
       }))
