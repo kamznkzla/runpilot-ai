@@ -272,6 +272,68 @@ body {
   background: var(--accent); color: #fff; border: none; border-radius: var(--radius-round);
   padding: 10px 24px; font-weight: 600; cursor: pointer;
 }
+.quick-coach { padding-bottom: 12px; }
+.quick-coach-head {
+  background:
+    radial-gradient(circle at 16% 0%, rgba(255,45,85,0.24), transparent 32%),
+    linear-gradient(180deg, rgba(44,44,46,0.96), rgba(28,28,30,0.98));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  padding: 20px;
+  margin-bottom: 14px;
+}
+.coach-mode-badge {
+  display: inline-flex;
+  padding: 5px 10px;
+  border-radius: var(--radius-round);
+  background: rgba(100,210,255,0.14);
+  color: var(--info);
+  font-size: 11px;
+  font-weight: 700;
+}
+.quick-coach-title { margin-top: 12px; font-size: 24px; font-weight: 800; }
+.quick-coach-sub { margin-top: 6px; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+.qna-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 12px;
+  margin-bottom: 2px;
+}
+.qna-tabs button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(118,118,128,0.14);
+  color: var(--text-secondary);
+  border-radius: var(--radius-round);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.qna-tabs button.active {
+  background: linear-gradient(135deg, var(--ring-move), var(--accent));
+  color: #fff;
+  border-color: transparent;
+}
+.qna-list { display: flex; flex-direction: column; gap: 10px; }
+.qna-card {
+  background: rgba(28,28,30,0.94);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  padding: 15px;
+  cursor: pointer;
+}
+.qna-card.active { border-color: rgba(255,90,31,0.44); background: rgba(44,44,46,0.94); }
+.qna-question { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 15px; font-weight: 700; }
+.qna-arrow {
+  width: 26px; height: 26px; flex: 0 0 26px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.08); color: var(--accent-light); font-size: 18px;
+}
+.qna-answer { margin-top: 10px; color: var(--text-secondary); font-size: 14px; line-height: 1.65; }
+.qna-answer p { margin: 0 0 8px; }
+.qna-answer p:last-child { margin-bottom: 0; }
+.qna-answer b { color: #fff; }
 
 /* Profile */
 .profile-card {
@@ -811,8 +873,29 @@ body {
     <!-- AI Coach Page -->
     <div class="page-content" style="padding:0;display:flex;flex-direction:column" v-if="page==='tab_coach'">
       <div style="flex:1;overflow-y:auto;padding:14px">
-        <div v-if="chatMessages.length===0" style="text-align:center;padding:40px 20px">
-          <div style="font-size:50px">🏃</div><div style="font-size:19px;font-weight:600;margin-top:8px">RunPilot AI 教练</div><div style="font-size:13px;color:var(--text-muted);margin:8px 0 16px">可以问我关于训练、跑步技巧、营养建议等问题</div>
+        <div v-if="chatMessages.length===0 && !(settings.realAIEnabled && settings.geminiApiKey.trim())" class="quick-coach">
+          <div class="quick-coach-head">
+            <div>
+              <div class="coach-mode-badge">本地快速 Q&A 模式</div>
+              <div class="quick-coach-title">RunPilot AI 教练</div>
+              <div class="quick-coach-sub">打开 Gemini Flash 后，同样问题可结合你的训练数据做个性化分析。</div>
+            </div>
+          </div>
+          <div class="qna-tabs">
+            <button v-for="cat in qnaCategories" :class="{active:qnaCategory===cat}" @click="qnaCategory=cat">{{ cat }}</button>
+          </div>
+          <div class="qna-list">
+            <div v-for="qa in filteredQna" class="qna-card" :class="{active:selectedQnaKey===qa.id}" @click="selectedQnaKey=selectedQnaKey===qa.id?'':qa.id">
+              <div class="qna-question">
+                <span>{{ qa.question }}</span>
+                <span class="qna-arrow">{{ selectedQnaKey===qa.id ? '−' : '+' }}</span>
+              </div>
+              <div v-if="selectedQnaKey===qa.id" class="qna-answer" v-html="qa.answer"></div>
+            </div>
+          </div>
+        </div>
+        <div v-if="chatMessages.length===0 && settings.realAIEnabled && settings.geminiApiKey.trim()" style="text-align:center;padding:40px 20px">
+          <div style="font-size:50px">🏃</div><div style="font-size:19px;font-weight:600;margin-top:8px">RunPilot AI 教练</div><div style="font-size:13px;color:var(--text-muted);margin:8px 0 16px">Gemini Flash 已启用，可以结合你的训练计划和记录回答。</div>
           <div><span v-for="q in quickQuestions" class="quick-q" @click="sendChat(q)">{{ q }}</span></div></div>
         <div v-for="(m,i) in chatMessages" class="chat-msg" :class="m.role"><div class="chat-avatar" :class="m.role">{{ m.role==='assistant'?'AI':'我' }}</div><div class="chat-bubble" v-html="m.content"></div></div>
         <div v-if="chatLoading" class="chat-msg"><div class="chat-avatar ai">AI</div><div class="chat-bubble" style="padding:14px 20px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 0.6s infinite;margin:0 3px"></span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 0.6s infinite 0.15s;margin:0 3px"></span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 0.6s infinite 0.3s;margin:0 3px"></span></div></div>
@@ -1133,6 +1216,27 @@ createApp({
       '新手怎么开始跑步？', '什么是间歇跑？', '跑步吃什么好？'
     ]
 
+    const qnaCategory = ref('训练类型')
+    const selectedQnaKey = ref('threshold')
+    const localQna = [
+      { id:'threshold', category:'训练类型', question:'什么是阈值跑？', answer:'<p>阈值跑是接近乳酸阈值的可控强度训练，重点是<b>累但不崩</b>。常用指标：RPE 7-8，心率约最大心率 85%-90%，配速大约接近 10km 到半马比赛配速。</p><p>新手建议从 <b>2 x 8 分钟</b> 开始，中间慢跑恢复 3 分钟；有基础后再进阶到 20-30 分钟连续节奏跑。</p>' },
+      { id:'lsd', category:'训练类型', question:'什么是 LSD？', answer:'<p>LSD 是低强度长距离跑，核心不是跑快，而是延长有氧工作时间。建议心率控制在最大心率 <b>65%-75%</b>，RPE 3-4，能完整说话。</p><p>半马和全马训练中，LSD 用来建立耐力、脂代谢能力和后程稳定性。配速宁可慢一点，也不要把长距离跑成比赛。</p>' },
+      { id:'aerobic', category:'训练类型', question:'有氧跑应该怎么跑？', answer:'<p>有氧跑应该轻松、稳定、可持续。常见判断：心率在最大心率 <b>60%-75%</b>，RPE 3-5，跑完不明显疲劳。</p><p>大多数跑者每周 <b>70%-80%</b> 的跑量都应该来自低强度有氧训练。它看起来不刺激，但最能决定长期进步。</p>' },
+      { id:'bpm-pace', category:'数据指标', question:'BPM 心率和配速是什么关系？', answer:'<p>同一配速下，如果心率越来越低，通常说明有氧能力提升；如果同一配速心率明显升高，可能是疲劳、睡眠不足、天气热、补水不足或恢复不够。</p><p>不要只看单次心率，更应该看 <b>2-4 周趋势</b>。比如 6 分配速从 155 bpm 降到 148 bpm，是比某一次跑快更有价值的信号。</p>' },
+      { id:'cadence', category:'数据指标', question:'步频多少比较合适？', answer:'<p>多数跑者常见步频在 <b>165-185 spm</b>，但不要盲目追求 180。更实用的目标是：在不明显增加心率的情况下，把过低步频逐步提高 3%-5%。</p><p>例如当前 158 spm，可以先尝试 164-166 spm，连续观察 2 周，看膝踝感觉、心率和配速是否更稳定。</p>' },
+      { id:'stride', category:'数据指标', question:'步幅是不是越大越好？', answer:'<p>不是。步幅过大容易形成跨步，落地点太靠前会增加刹车力和膝踝压力。更好的标准是：落地点接近身体重心下方，步频稳定，垂直起伏不过大。</p><p>配速提升时，步幅会自然增加；日常慢跑阶段，更推荐先优化步频和落地位置，而不是刻意跨大步。</p>' },
+      { id:'form', category:'跑姿装备', question:'我应该怎么改跑姿？', answer:'<p>先不要大改动作。优先看三个指标：步频是否过低、落地点是否明显在身体前方、左右触地是否不均衡。</p><p>建议每次只改一个点，例如先把步频提高 <b>3%-5%</b>，观察 2 周内心率、疼痛和配速变化。突然改前掌落地或大幅改变姿势，反而容易受伤。</p>' },
+      { id:'shoes', category:'跑姿装备', question:'怎么选跑鞋？', answer:'<p>先按用途选：日常慢跑选缓震稳定训练鞋；速度课选轻量训练鞋；比赛选碳板或竞速鞋。</p><p>再看个人情况：体重大、初跑者、容易膝踝不适，优先稳定和缓震；配速较快且动作稳定，再考虑激进竞速鞋。跑鞋寿命通常约 <b>500-800 km</b>。</p>' },
+      { id:'weekly-frequency', category:'训练安排', question:'一周应该跑几次？', answer:'<p>新手建议每周 3 次；有基础跑者 4-5 次；备赛半马或全马可以 5-6 次。原则是每周最多 <b>1-2 次高强度</b>，其余保持轻松跑。</p><p>两次强度课之间至少间隔 48 小时。强度包括阈值跑、间歇跑、比赛配速跑和非常吃力的长距离。</p>' },
+      { id:'weekly-volume', category:'训练安排', question:'跑量怎么增加？', answer:'<p>建议每周跑量增加不超过 <b>10%</b>，连续增加 2-3 周后安排一周减量。比如 30km 周跑量，可以先到 33km，再到 36km，然后回落到 28-30km 恢复。</p><p>如果出现睡眠变差、晨起心率升高、腿沉或小伤反复，优先减量，而不是硬顶计划。</p>' },
+      { id:'knee-pain', category:'伤病恢复', question:'膝盖疼还能跑吗？', answer:'<p>如果疼痛超过 <b>3/10</b>，或越跑越痛，建议停止当天训练。可以先减量、避免下坡和速度课，观察 3-7 天。</p><p>如果出现肿胀、刺痛、跛行或持续疼痛，需要线下就医评估。AI 教练可以给训练调整建议，但不能替代医疗诊断。</p>' },
+      { id:'rest', category:'伤病恢复', question:'什么时候该休息？', answer:'<p>晨起静息心率比平时高 5-10 次、睡眠差、腿沉、配速下降但心率升高，都是恢复不足信号。</p><p>此时建议把当天训练改成休息或 30 分钟以内轻松跑。训练不是在硬撑中变强，而是在刺激之后的恢复里变强。</p>' },
+      { id:'race-10k', category:'比赛策略', question:'10km 怎么配速？', answer:'<p>前 2km 比目标配速慢 5-10 秒/km，中间 6km 稳住目标配速，最后 2km 根据体感加速。</p><p>10km 最忌讳前 1km 过快。判断标准是：3km 前不应该有明显顶不住的感觉，7km 后再开始真正用力。</p>' },
+      { id:'race-half', category:'比赛策略', question:'半马怎么配速？', answer:'<p>建议前 5km 保守，中间 10km 稳定，15km 后再判断是否提速。半马强度接近阈值，前半程心率过高会导致后程明显掉速。</p><p>如果目标是完赛，前半程体感应该在 RPE 5-6；如果目标 PB，10-15km 后再逐渐进入 RPE 7-8。</p>' },
+      { id:'race-marathon', category:'比赛策略', question:'全马怎么避免撞墙？', answer:'<p>前 30km 要克制，配速略慢于目标配速 5-10 秒/km。补给从 30-45 分钟就开始，不要等饿了再吃。</p><p>全马后半程比拼的是心率、补给和耐心。能量胶要配水，训练中就要测试口味和肠胃耐受。</p>' }
+    ]
+    const qnaCategories = ['训练类型','数据指标','跑姿装备','训练安排','伤病恢复','比赛策略']
+
     const quickLinks = [
       { ico:'📋', lbl:'训练计划', page:'tab_plan' },
       { ico:'💬', lbl:'AI教练', page:'tab_coach' },
@@ -1247,6 +1351,8 @@ createApp({
       const seed = `${dateKey}-${type || 'general'}-${form.goalDistance || 'runpilot'}`
       return pool[pickDailyIndex(seed, pool.length)] || quotePools.general[0]
     })
+
+    const filteredQna = computed(() => localQna.filter(qa => qa.category === qnaCategory.value))
 
     const weeklyDone = computed(() => {
       if (!activePlan.value) return 0
@@ -2134,6 +2240,7 @@ createApp({
       fbStatus, fbForm, manualLog, calYear, calMonth, calSelected, chatMessages, chatSessions,
       trainingLogs, completedWorkouts, totalKmAll, confettiPieces,
       distances, goalDistances, platforms, quickQuestions, quickLinks, pbs,
+      qnaCategory, selectedQnaKey, qnaCategories, filteredQna,
       earnedAch, lockedAch, coachTip,
       hasActivePlan, currentWeek, todayWorkout, weeklyTotal, weeklyDone, weeklyPct,
       weekTotalKm, summaryItems, goalPresets, raceDays, raceHours, raceMins,
