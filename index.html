@@ -273,6 +273,51 @@ body {
   padding: 10px 24px; font-weight: 600; cursor: pointer;
 }
 .quick-coach { padding-bottom: 12px; }
+.coach-mode-switch {
+  background: rgba(28,28,30,0.94);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 10px;
+  margin-bottom: 14px;
+}
+.coach-mode-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 4px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.coach-mode-pill {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.coach-mode-pill button {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(118,118,128,0.14);
+  color: var(--text-secondary);
+  border-radius: 16px;
+  padding: 12px 8px;
+  font-size: 14px;
+  font-weight: 800;
+}
+.coach-mode-pill button.active {
+  background: linear-gradient(135deg, var(--ring-move), var(--accent), var(--accent-light));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 10px 22px rgba(255,45,85,0.18);
+}
+.coach-key-panel {
+  background: rgba(100,210,255,0.1);
+  border: 1px solid rgba(100,210,255,0.18);
+  border-radius: 18px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.coach-key-title { font-size: 14px; font-weight: 800; color: var(--info); margin-bottom: 8px; }
+.coach-key-note { margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--text-muted); }
 .quick-coach-head {
   background:
     radial-gradient(circle at 16% 0%, rgba(255,45,85,0.24), transparent 32%),
@@ -873,6 +918,21 @@ body {
     <!-- AI Coach Page -->
     <div class="page-content" style="padding:0;display:flex;flex-direction:column" v-if="page==='tab_coach'">
       <div style="flex:1;overflow-y:auto;padding:14px">
+        <div class="coach-mode-switch">
+          <div class="coach-mode-label">
+            <span>教练回答模式</span>
+            <span>{{ settings.realAIEnabled ? (settings.geminiApiKey.trim() ? 'Gemini Flash 已启用' : '需要填写 API Key') : '本地快速 Q&A' }}</span>
+          </div>
+          <div class="coach-mode-pill">
+            <button :class="{active:!settings.realAIEnabled}" @click="settings.realAIEnabled=false">快速 Q&A</button>
+            <button :class="{active:settings.realAIEnabled}" @click="settings.realAIEnabled=true">Gemini Flash</button>
+          </div>
+        </div>
+        <div v-if="settings.realAIEnabled && !settings.geminiApiKey.trim()" class="coach-key-panel">
+          <div class="coach-key-title">填写 Gemini API Key 后即可进入真 AI 模式</div>
+          <input class="input" type="password" v-model="settings.geminiApiKey" placeholder="AIza...，仅保存在本机浏览器">
+          <div class="coach-key-note">Key 只保存在当前浏览器的 localStorage。未填写时仍可继续使用本地快速 Q&A。</div>
+        </div>
         <div v-if="chatMessages.length===0 && !(settings.realAIEnabled && settings.geminiApiKey.trim())" class="quick-coach">
           <div class="quick-coach-head">
             <div>
