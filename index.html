@@ -974,7 +974,7 @@ body {
         <div class="menu-item" @click="openProfilePage('sub_achievements')"><span class="ico">🏅</span><span class="lbl">成就墙</span><span class="arrow">→</span></div>
         <div class="menu-item" @click="openProfilePage('sub_settings')"><span class="ico">⚙️</span><span class="lbl">设置</span><span class="arrow">→</span></div>
       </div>
-      <div style="text-align:center;font-size:11px;color:var(--text-muted);padding:20px">RunPilot AI v1.2.0</div>
+      <div style="text-align:center;font-size:11px;color:var(--text-muted);padding:20px">RunPilot AI v1.2.1</div>
     </div>
 
     <!-- Edit Profile -->
@@ -1038,7 +1038,7 @@ body {
         <input class="input" v-model="settings.geminiModel" placeholder="gemini-2.5-flash">
       </div>
       <div class="settings-title" style="margin-top:14px">关于</div>
-      <div class="switch-wrap"><span>版本</span><span style="color:var(--text-muted);font-size:13px">1.2.0</span></div>
+      <div class="switch-wrap"><span>版本</span><span style="color:var(--text-muted);font-size:13px">1.2.1</span></div>
       <button class="btn btn-outline" style="margin-top:30px;color:var(--error);border-color:var(--error)" @click="resetApp">退出登录</button>
     </div>
 
@@ -1063,8 +1063,8 @@ const { createApp, ref, reactive, computed, watch, onMounted, nextTick, toRefs }
 
 createApp({
   setup() {
-    const APP_VERSION = '1.2.0'
-    const COMPATIBLE_STATE_VERSIONS = ['1.0.1', '1.1.0', '1.2.0']
+    const APP_VERSION = '1.2.1'
+    const COMPATIBLE_STATE_VERSIONS = ['1.0.1', '1.1.0', '1.2.0', '1.2.1']
     // --- Page State ---
     const page = ref('onboarding1')
     const showSessions = ref(false)
