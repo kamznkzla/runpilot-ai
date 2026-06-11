@@ -177,21 +177,6 @@ body {
 .steps .dot { width: 54px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); }
 .steps .dot.active { background: var(--accent); }
 
-/* Countdown */
-.countdown-card {
-  background:
-    radial-gradient(circle at 18% 10%, rgba(255,255,255,0.18), transparent 18%),
-    linear-gradient(135deg, #FF2D55, #FF5A1F 56%, #FFD60A);
-  border-radius: 24px; padding: 22px; text-align: center; margin-bottom: 16px;
-  box-shadow: 0 22px 54px rgba(255,45,85,0.22);
-}
-.countdown-card .label { font-size: 13px; color: rgba(255,255,255,0.8); }
-.countdown-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 14px 0; }
-.countdown-row .num { font-family: var(--font-mono); font-size: 52px; font-weight: 800; letter-spacing: 0; }
-.countdown-row .unit { font-size: 13px; color: rgba(255,255,255,0.7); }
-.countdown-row .sep { color: rgba(255,255,255,0.3); font-size: 20px; margin: 0 6px; }
-.countdown-motivation { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 8px; }
-
 /* Workout icon */
 .workout-icon {
   width: 54px; height: 54px; border-radius: 18px;
@@ -736,10 +721,6 @@ body {
       </div>
       <input class="input mt" placeholder="或手动输入 (如 1:45:00)" v-model="form.goalTimeCustom" @input="parseCustomTime()" style="margin-top:10px">
     </div>
-    <div style="margin-bottom:16px">
-      <label class="text-muted" style="display:block;margin-bottom:8px">比赛日期</label>
-      <input class="input" type="date" v-model="form.goalRaceDate">
-    </div>
     <div style="display:flex;gap:10px">
       <button class="btn btn-outline" style="flex:1" @click="page='onboarding3'">上一步</button>
       <button class="btn btn-primary" style="flex:2" :disabled="!form.goalDistance" @click="page='onboarding5'">下一步</button>
@@ -787,20 +768,6 @@ body {
 
     <!-- Page Content -->
     <div class="page-content" style="overflow-y:auto;flex:1" v-if="page==='tab_dashboard'">
-      <!-- Countdown -->
-      <div v-if="form.goalRaceDate" class="countdown-card" @click="page='tab_plan'">
-        <div class="label">距离比赛日还有</div>
-        <div class="countdown-row">
-          <div><div class="num">{{ raceDays }}</div><div class="unit">天</div></div>
-          <span class="sep">:</span>
-          <div><div class="num">{{ raceHours }}</div><div class="unit">时</div></div>
-          <span class="sep">:</span>
-          <div><div class="num">{{ raceMins }}</div><div class="unit">分</div></div>
-        </div>
-        <div v-if="form.goalDistance" style="font-size:15px;margin-top:8px">目标：{{ goalLabel(form.goalDistance) }} · {{ form.goalTime || '完赛即可' }}</div>
-        <div class="countdown-motivation">{{ motivationText }}</div>
-      </div>
-
       <!-- Today's Workout -->
       <div class="text-muted mb" style="font-size:16px;font-weight:600;color:var(--text-primary)">今日训练</div>
       <div class="card accent" v-if="todayWorkout" style="cursor:pointer" @click="page='sub_workout_detail'">
@@ -843,8 +810,8 @@ body {
 
       <!-- AI Daily Tip -->
       <div class="card accent">
-        <div style="color:var(--accent-light);font-size:13px;margin-bottom:4px">💡 AI 教练说</div>
-        <div style="font-size:15px;color:var(--text-secondary);line-height:1.6">"{{ coachTip.text }}"</div>
+        <div style="color:var(--accent-light);font-size:13px;margin-bottom:4px">💡 今日跑步提示</div>
+        <div style="font-size:15px;color:var(--text-secondary);line-height:1.6">{{ coachTip.text }}</div>
         <div v-if="coachTip.author" style="font-size:12px;color:var(--text-muted);margin-top:8px">- {{ coachTip.author }}</div>
       </div>
 
@@ -1058,7 +1025,6 @@ body {
     <div class="page-content" v-if="page==='sub_settings'">
       <div class="settings-title" style="margin-top:0">通知设置</div>
       <div class="switch-wrap"><span>训练提醒</span><div class="toggle" :class="{on:settings.trainingReminder}" @click="settings.trainingReminder=!settings.trainingReminder"></div></div>
-      <div class="switch-wrap"><span>比赛倒计时提醒</span><div class="toggle" :class="{on:settings.raceReminder}" @click="settings.raceReminder=!settings.raceReminder"></div></div>
       <div class="switch-wrap"><span>周报推送</span><div class="toggle" :class="{on:settings.weeklyReport}" @click="settings.weeklyReport=!settings.weeklyReport"></div></div>
       <div class="settings-title" style="margin-top:14px">AI 教练</div>
       <div class="switch-wrap"><span>启用真 AI（Gemini Flash）</span><div class="toggle" :class="{on:settings.realAIEnabled}" @click="settings.realAIEnabled=!settings.realAIEnabled"></div></div>
@@ -1117,14 +1083,12 @@ createApp({
       weeklyDays: '', experience: '',
       times: {}, paces: {},
       goalDistance: '', goalTime: '', goalTimeSec: 0, goalTimeCustom: '',
-      goalRaceDate: '', raceDate: '',
       devices: [], nickname: ''
     })
 
     // --- Settings ---
     const settings = reactive({
       trainingReminder: true,
-      raceReminder: true,
       weeklyReport: true,
       realAIEnabled: false,
       geminiApiKey: '',
@@ -1336,7 +1300,7 @@ createApp({
 
     const quotePools = {
       easy: [
-        { text:'训练要有计划性，不能盲目跟风。', author:'大迫杰' },
+        { text:'训练要有计划性，不能盲目跟风。', author:'RunPilot Coach' },
         { text:'轻松跑不是偷懒，是为下一次高质量训练存入本金。', author:'RunPilot Coach' },
         { text:'今天能完整聊天的配速，就是最好的有氧配速。', author:'RunPilot Coach' },
         { text:'把心率压住，把步伐放松，身体会在安静里变强。', author:'RunPilot Coach' },
@@ -1344,7 +1308,7 @@ createApp({
         { text:'有氧日的胜利，是跑完以后还想继续跑。', author:'RunPilot Coach' }
       ],
       rest: [
-        { text:'恢复是训练的重要组成部分，不可忽视。', author:'大迫杰' },
+        { text:'恢复是训练的重要组成部分，不可忽视。', author:'RunPilot Coach' },
         { text:'休息日不是空白，它是身体把训练变成能力的时间。', author:'RunPilot Coach' },
         { text:'真正会训练的人，也会认真休息。', author:'RunPilot Coach' },
         { text:'今天少跑一点，是为了之后跑得更久。', author:'RunPilot Coach' },
@@ -1358,7 +1322,7 @@ createApp({
         { text:'今天的关键词只有一个：放松。', author:'RunPilot Coach' }
       ],
       tempo: [
-        { text:'我不喜欢天赋这个词，因为它掩盖了我所有的努力。', author:'雅各布·英格布里格森' },
+        { text:'我不喜欢天赋这个词，因为它掩盖了我所有的努力。', author:'RunPilot Coach' },
         { text:'阈值跑要可控，不要把训练跑成比赛。', author:'RunPilot Coach' },
         { text:'最好的阈值感，是累但不崩，稳但不拖。', author:'RunPilot Coach' },
         { text:'节奏跑练的是控制力，不是逞强。', author:'RunPilot Coach' },
@@ -1381,16 +1345,11 @@ createApp({
         { text:'马拉松训练，最难的是不被一时状态带跑。', author:'RunPilot Coach' }
       ],
       general: [
-        { text:'我不知道极限在哪里，但是我会一直向着它跑下去。', author:'基普乔格' },
-        { text:'只要你有一双跑鞋，一条好的路，就可以跑得很高兴。', author:'村上春树' },
         { text:'No human is limited.', author:'Eliud Kipchoge' },
         { text:'To give anything less than your best is to sacrifice the gift.', author:'Steve Prefontaine' },
-        { text:'The marathon is a very good metaphor for life.', author:'Eliud Kipchoge' },
-        { text:'A race is a work of art that people can look at and be affected by.', author:'Steve Prefontaine' },
-        { text:'I run to see who has the most guts.', author:'Steve Prefontaine' },
+        { text:'只要你有一双跑鞋，一条好的路，就可以跑得很高兴。', author:'村上春树' },
         { text:'A marathon is hundreds of miles. The finish is the last 26.2.', author:'Hal Higdon' },
         { text:'Run the first part with your head, the middle with personality, the last with heart.', author:'Mike Fanelli' },
-        { text:'Some seek the comfort of their therapist; I seek the comfort of running shoes.', author:'Dean Karnazes' },
         { text:'如果今天不想跑，就只承诺出门十分钟。很多训练都是这样开始的。', author:'RunPilot Coach' },
         { text:'跑步不会每天都轻松，但每天都能教你一点东西。', author:'RunPilot Coach' },
         { text:'真正的进步，通常藏在那些平凡的有氧日里。', author:'RunPilot Coach' },
@@ -1523,14 +1482,6 @@ createApp({
         'marathon': [{label:'3:30:00',sec:12600},{label:'4:00:00',sec:14400},{label:'4:30:00',sec:16200},{label:'5:00:00',sec:18000}]
       }
       return presets[form.goalDistance] || []
-    })
-
-    const raceDays = ref(0), raceHours = ref(0), raceMins = ref(0)
-    const motivationText = computed(() => {
-      if (raceDays.value <= 0) return '比赛日就是今天，加油！'
-      if (raceDays.value <= 7) return '最后冲刺，相信自己！'
-      if (raceDays.value <= 30) return '关键备战期，坚持就是胜利'
-      return '持续积累，量变引起质变'
     })
 
     const todayDate = computed(() => { const d=new Date(); return `${d.getMonth()+1}月${d.getDate()}日` })
@@ -1807,14 +1758,8 @@ createApp({
     function completeOnboarding() {
       form.nickname = '跑者' + (form.gender === 'male' ? '🏃‍♂️' : '🏃‍♀️')
       form.onboardingDone = true
-      if (!form.goalRaceDate) {
-        const raceDate = new Date()
-        raceDate.setDate(raceDate.getDate() + 84)
-        form.goalRaceDate = raceDate.toISOString().split('T')[0]
-      }
       if (form.goalDistance) generateSamplePlan()
       page.value = 'tab_dashboard'
-      updateCountdown()
     }
 
     // --- Plan Generation ---
@@ -2307,21 +2252,6 @@ createApp({
       setTimeout(() => { showConfetti.value = false }, 3000)
     }
 
-    // --- Timer ---
-    function updateCountdown() {
-      if (!form.goalRaceDate) return
-      const now = new Date()
-      const race = new Date(form.goalRaceDate)
-      const diff = race - now
-      if (diff <= 0) { raceDays.value=0; raceHours.value=0; raceMins.value=0; return }
-      raceDays.value = Math.floor(diff/(1000*60*60*24))
-      raceHours.value = Math.floor((diff%(1000*60*60*24))/(1000*60*60))
-      raceMins.value = Math.floor((diff%(1000*60*60))/(1000*60))
-    }
-
-    setInterval(updateCountdown, 60000)
-    updateCountdown()
-
     // --- Draw ring ---
     function drawRing() {
       setTimeout(() => {
@@ -2419,7 +2349,6 @@ createApp({
           Object.assign(form, state.form || {})
           Object.assign(settings, {
             trainingReminder: true,
-            raceReminder: true,
             weeklyReport: true,
             realAIEnabled: false,
             geminiApiKey: '',
@@ -2460,8 +2389,8 @@ createApp({
       qnaCategory, selectedQnaKey, qnaCategories, filteredQna,
       earnedAch, lockedAch, coachTip,
       hasActivePlan, currentWeek, todayWorkout, weeklyTotal, weeklyDone, weeklyPct,
-      weekTotalKm, summaryItems, goalPresets, raceDays, raceHours, raceMins,
-      motivationText, todayDate, todayWeekday,
+      weekTotalKm, summaryItems, goalPresets,
+      todayDate, todayWeekday,
       weeklyVolNow, weeklyVolPrev, acwrVal, acwrPct, acwrColor, acwrStatus,
       currentNavTitle, canGoBack, calGrid, calLegend,
       goalLabel, workoutColor, workoutEmoji, workoutLabel, phaseLabel, phaseColor,
